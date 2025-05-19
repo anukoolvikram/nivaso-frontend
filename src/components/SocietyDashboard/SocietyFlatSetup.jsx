@@ -26,7 +26,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
 
     const fetchFlats = async () => {
         try {
-            const response = await fetch(`/auth/society/getFlatsData/${societyCode}`);
+            const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/society/getFlatsData/${societyCode}`);
             if (!response.ok) throw new Error("Failed to fetch");
             const data = await response.json();
             

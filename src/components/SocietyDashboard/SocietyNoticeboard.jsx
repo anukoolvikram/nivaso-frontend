@@ -62,10 +62,10 @@ const SocietyNoticeboard = () => {
 
   const fetchFederationNotices = async (decoded) => {
     try {
-      const fedRes = await axios.get(`http://localhost:5000/notices/federation-id/${decoded.society_id}`);
+      const fedRes = await axios.get(`${import.meta.env.BACKEND_URL}/notices/federation-id/${decoded.society_id}`);
       const federation_id = fedRes.data.federation_id;
 
-      const res = await axios.get(`http://localhost:5000/notices/federation-notice/get/${federation_id}`);
+      const res = await axios.get(`${import.meta.env.BACKEND_URL}/notices/federation-notice/get/${federation_id}`);
       setFederationNotices(res.data);
       // console.log(res.data)
     } catch (err) {
@@ -77,7 +77,7 @@ const SocietyNoticeboard = () => {
 
   const fetchNotices = async (society_id) => {
     try {
-      const res = await axios.get('http://localhost:5000/notices/all-notices', {
+      const res = await axios.get(`${import.meta.env.BACKEND_URL}/notices/all-notices`, {
         params: { society_id }
       });
   
@@ -89,7 +89,7 @@ const SocietyNoticeboard = () => {
         approvedNotices.map(async (notice) => {
           if (notice.user_id) {
             try {
-              const userRes = await axios.get(`http://localhost:5000/user-name/${notice.user_id}`);
+              const userRes = await axios.get(`${import.meta.env.BACKEND_URL}/user-name/${notice.user_id}`);
               const { author_name, flat_id } = userRes.data;
   
               return {
@@ -129,7 +129,7 @@ const SocietyNoticeboard = () => {
 
   const fetchPendingNotices = async (society_id) => {
     try {
-      const res = await axios.get('http://localhost:5000/notices/all-notices', {
+      const res = await axios.get(`${import.meta.env.BACKEND_URL}/notices/all-notices`, {
         params: { society_id }
       });
   
@@ -141,7 +141,7 @@ const SocietyNoticeboard = () => {
         unapproved.map(async (notice) => {
           if (notice.user_id) {
             try {
-              const userRes = await axios.get(`http://localhost:5000/notices/user-name/${notice.user_id}`);
+              const userRes = await axios.get(`${import.meta.env.BACKEND_URL}/notices/user-name/${notice.user_id}`);
               const { author_name, flat_id } = userRes.data;
   
               return {
@@ -180,7 +180,7 @@ const SocietyNoticeboard = () => {
 
   const handleApprove = async (notice_id) => {
     try {
-      await axios.put(`http://localhost:5000/notices/approve-notice/${notice_id}`);
+      await axios.put(`${import.meta.env.BACKEND_URL}/notices/approve-notice/${notice_id}`);
       showToast("Notice approved!");
       fetchNotices(formData.society_id);
       fetchPendingNotices(formData.society_id);
@@ -201,10 +201,10 @@ const SocietyNoticeboard = () => {
     e.preventDefault();
     try {
       if (editing) {
-        await axios.put(`http://localhost:5000/notices/edit-notice/${formData.notice_id}`, formData);
+        await axios.put(`${import.meta.env.BACKEND_URL}/notices/edit-notice/${formData.notice_id}`, formData);
         showToast('Notice updated!');
       } else {
-        await axios.post('http://localhost:5000/notices/post-notice', formData);
+        await axios.post(`${import.meta.env.BACKEND_URL}/notices/post-notice`, formData);
         showToast('Notice posted!');
       }
   

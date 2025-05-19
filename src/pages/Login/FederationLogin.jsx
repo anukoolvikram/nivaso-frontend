@@ -49,7 +49,7 @@ const FederationLogin = () => {
     };
 
     try {
-      const response = await fetch("http://localhost:5000/auth/federation/register", {
+      const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/federation/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -78,7 +78,7 @@ const FederationLogin = () => {
     const payload = { email, password };
 
     try {
-      const response = await fetch("http://localhost:5000/auth/federation/login", {
+      const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/federation/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

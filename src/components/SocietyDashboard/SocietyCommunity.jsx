@@ -48,7 +48,7 @@ const SocietyCommunity = () => {
     const fetchBlogs = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:5000/blogs/all-blogs', {
+        const response = await axios.get(`${import.meta.env.BACKEND_URL}/blogs/all-blogs`, {
           params: { society_id: decoded?.society_code }
         });
 
@@ -59,7 +59,7 @@ const SocietyCommunity = () => {
             let authorName = 'Community Member';
             if (blog.author_id) {
               try {
-                const authorRes = await axios.get(`http://localhost:5000/blogs/author-name/${blog.author_id}`);
+                const authorRes = await axios.get(`${import.meta.env.BACKEND_URL}/blogs/author-name/${blog.author_id}`);
                 authorName = authorRes.data?.author_name || 'Unknown';
               } catch {
                 authorName = 'Unknown';

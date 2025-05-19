@@ -53,7 +53,7 @@ const FederationNoticeboard = () => {
 
   const fetchNotices = async (federation_id) => {
     try {
-      const res = await axios.get(`http://localhost:5000/notices/federation-notice/get/${federation_id}`);
+      const res = await axios.get(`${import.meta.env.BACKEND_URL}/notices/federation-notice/get/${federation_id}`);
       setNotices(res.data);
     } catch (err) {
       console.error('Error fetching notices:', err);
@@ -79,10 +79,10 @@ const FederationNoticeboard = () => {
     e.preventDefault();
     try {
       if (editing) {
-        await axios.put(`http://localhost:5000/notices/federation-notice/edit/${formData.id}`, formData);
+        await axios.put(`${import.meta.env.BACKEND_URL}/notices/federation-notice/edit/${formData.id}`, formData);
         showToast('Notice updated!');
       } else {
-        await axios.post(`http://localhost:5000/notices/federation-notice/post`, formData);
+        await axios.post(`${import.meta.env.BACKEND_URL}/federation-notice/post`, formData);
         showToast('Notice posted!');
       }
       fetchNotices(formData.federation_id);

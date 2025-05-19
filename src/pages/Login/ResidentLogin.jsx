@@ -13,7 +13,7 @@ const ResidentLogin = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch("/auth/resident/login", {
+      const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/resident/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
