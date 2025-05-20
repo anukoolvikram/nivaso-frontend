@@ -7,8 +7,6 @@ import Pricing from "../../components/HomeComponents/Pricing";
 import Testimonials from "../../components/HomeComponents/Testimonials";
 import image from "../../assets/bgImage.jpg";
 
-import "./styles.css";
-
 const sections = ["hero", "features", "about", "pricing", "contact"];
 
 const Home = () => {
@@ -72,7 +70,6 @@ const Home = () => {
   };
 
   const handleLoginNavigation = () => {
-    console.log('navigating')
     navigate("/login");
   };
 
@@ -87,32 +84,26 @@ const Home = () => {
           Nivaso
         </h2>
         <div className="flex space-x-4 mr-4 bg-white p-2">
-          {sections
-            .filter((section) => section !== "hero")
-            .map((section) => (
-              <button
-                key={section}
-                onClick={() => handleNavClick(section)}
-                className={`text-lg font-semibold px-4 py-2 rounded-md ${
-                  activeSection === section ? "border-b-2 border-black" : ""
-                }`}
-                style={{
-                  backgroundColor: "transparent",
-                  color: "black",
-                  transition: "background-color 0.3s, color 0.3s",
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = "#3B82F6";
-                  e.target.style.color = "white";
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = "transparent";
-                  e.target.style.color = "black";
-                }}
-              >
-                {section.charAt(0).toUpperCase() + section.slice(1)}
-              </button>
-            ))}
+          {sections.filter((section) => section !== "hero").map((section) => (
+            <button
+              key={section}
+              onClick={() => handleNavClick(section)}
+              className={`text-lg font-semibold px-4 py-2 rounded-md transition-colors duration-300 ${
+                activeSection === section ? "bg-[#2775f2] text-white" : "bg-transparent text-black"
+              }`}
+              onMouseEnter={(e) => {
+                e.target.classList.add("bg-[#2775f2]", "text-white");
+              }}
+              onMouseLeave={(e) => {
+                if (activeSection !== section) {
+                  e.target.classList.remove("bg-[#2775f2]", "text-white");
+                  e.target.classList.add("bg-transparent", "text-black");
+                }
+              }}
+            >
+              {section.charAt(0).toUpperCase() + section.slice(1)}
+            </button>
+          ))}
           <div className="ml-2 flex space-x-2">
             {!isLoggedIn ? (
               <button
@@ -123,21 +114,19 @@ const Home = () => {
               </button>
             ) : (
               <>
-              <button
-                onClick={handleDashboardNavigation}
-                className="px-4 py-2 rounded-md bg-gray-800 text-white font-medium text-sm hover:bg-gray-700 transition-colors duration-200 shadow-sm"
-              >
-                Go to Dashboard
-              </button>
-            
-              <button
-                onClick={handleLogout}
-                className="ml-3 px-4 py-2 rounded-md bg-red-100 text-red-700 font-medium text-sm hover:bg-red-200 transition-colors duration-200 shadow-sm"
-              >
-                Logout
-              </button>
-            </>
-            
+                <button
+                  onClick={handleDashboardNavigation}
+                  className="px-4 py-2 rounded-md bg-gray-800 text-white font-medium text-sm hover:bg-gray-700 transition-colors duration-200 shadow-sm"
+                >
+                  Go to Dashboard
+                </button>
+                <button
+                  onClick={handleLogout}
+                  className="ml-3 px-4 py-2 rounded-md bg-red-100 text-red-700 font-medium text-sm hover:bg-red-200 transition-colors duration-200 shadow-sm"
+                >
+                  Logout
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -181,7 +170,7 @@ const Home = () => {
                     Get Started
                   </button>
                   <button
-                    className="px-6 py-2 text-lg font-semibold text-white border-1 border-white rounded-full hover:bg-black hover:text-black transition duration-300"
+                    className="px-6 py-2 text-lg font-semibold text-white border border-white rounded-full hover:bg-white hover:text-black transition duration-300"
                     onClick={() => handleNavClick("features")}
                   >
                     Explore Features

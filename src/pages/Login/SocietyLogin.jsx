@@ -41,7 +41,7 @@ const SocietyLogin = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/society/register`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -79,7 +79,7 @@ const SocietyLogin = () => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/society/login`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

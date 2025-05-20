@@ -39,14 +39,14 @@ const SocietyComplaints = () => {
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.BACKEND_URL}/complaints/get-complaints`, {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/complaints/get-complaints`, {
           params: { society_code: societyCode },
         });
 
         const complaintsWithNames = await Promise.all(
           response.data.map(async (complaint) => {
             try {
-              const res = await axios.get(`${import.meta.env.BACKEND_URL}/complaints/get-resident`, {
+              const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/complaints/get-resident`, {
                 params: { id: complaint.resident_id },
               });
               return { 
@@ -86,7 +86,7 @@ const SocietyComplaints = () => {
       try {
         const updatedStatus = "Under Review";
   
-        await axios.put(`${import.meta.env.BACKEND_URL}/complaints/change-status`, {
+        await axios.put(`${import.meta.env.VITE_BACKEND_URL}/complaints/change-status`, {
           id: complaint.id,
           status: updatedStatus,
         });
@@ -125,7 +125,7 @@ const SocietyComplaints = () => {
     }
 
     try {
-      await axios.put(`${import.meta.env.BACKEND_URL}/complaints/change-status`, {
+      await axios.put(`${import.meta.env.VITE_BACKEND_URL}/complaints/change-status`, {
         id: selectedComplaint.id,
         status: newStatus,
         comment: newStatus === 'Dismissed' ? dismissComment : undefined,

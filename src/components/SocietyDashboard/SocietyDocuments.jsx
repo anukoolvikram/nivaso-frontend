@@ -26,7 +26,7 @@ const SocietyDocuments = () => {
     if (!society_id) return;
 
     axios
-      .get(`${import.meta.env.BACKEND_URL}/documents`, {
+      .get(`${import.meta.env.VITE_BACKEND_URL}/documents`, {
         params: { society_id }
       })
       .then(res => setDocuments(res.data))
@@ -45,7 +45,7 @@ const SocietyDocuments = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post(`${import.meta.env.BACKEND_URL}/documents`, formData);
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/documents`, formData);
       setDocuments(prev => [res.data, ...prev]);
       setTitle('');
       setFile(null);
@@ -65,7 +65,7 @@ const SocietyDocuments = () => {
     if (!confirm) return;
 
     try {
-      await axios.delete(`${import.meta.env.BACKEND_URL}/documents/${id}`);
+      await axios.delete(`${import.meta.env.VITE_BACKEND_URL}/documents/${id}`);
       setDocuments(prev => prev.filter(doc => doc.id !== id));
       showToast('Document deleted successfully!', 'success');
     } catch (error) {

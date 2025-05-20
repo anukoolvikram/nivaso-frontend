@@ -41,7 +41,7 @@ const ResidentComplaints = () => {
 
   const fetchComplaints = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.BACKEND_URL}/complaints/get-complaints/${decoded.id}`, {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/complaints/get-complaints/${decoded.id}`, {
         params: { society_code: societyCode },
       });
       setComplaints(response.data);
@@ -62,7 +62,7 @@ const ResidentComplaints = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${import.meta.env.BACKEND_URL}/complaints/post-complaints`, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/complaints/post-complaints`, {
         ...formData,
         resident_id: decoded.id,
         society_code: societyCode,

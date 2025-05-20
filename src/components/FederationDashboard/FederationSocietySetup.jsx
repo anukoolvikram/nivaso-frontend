@@ -13,7 +13,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
   useEffect(() => {
     const fetchSocieties = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.BACKEND_URL}/auth/federation/getSociety`, {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/getSociety`, {
           params: { federationCode }
         });
         setSocieties(Array.isArray(response.data) ? response.data : []);
@@ -47,7 +47,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
         societyType: selectedSociety.society_type,
       };
 
-      const response = await axios.put(`${import.meta.env.BACKEND_URL}/auth/federation/updateSociety`, payload);
+      const response = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/updateSociety`, payload);
 
       setSocieties((prev) =>
         prev.map((soc) =>

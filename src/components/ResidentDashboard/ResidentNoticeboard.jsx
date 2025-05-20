@@ -54,7 +54,7 @@ const ResidentNoticeboard = () => {
 
   const fetchNotices = async (society_code) => {
     try {
-      const res = await axios.get(`${import.meta.env.BACKEND_URL}/notices/all-notices`, {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/all-notices`, {
         params: { society_code }
       });
 
@@ -66,7 +66,7 @@ const ResidentNoticeboard = () => {
         approvedNotices.map(async (notice) => {
           if (notice.user_id) {
             try {
-              const userRes = await axios.get(`${import.meta.env.BACKEND_URL}/user-name/${notice.user_id}`);
+              const userRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/user-name/${notice.user_id}`);
               const { author_name, flat_id } = userRes.data;
               return { ...notice, author_name, flat_id };
             } catch {
@@ -87,14 +87,14 @@ const ResidentNoticeboard = () => {
 
   const fetchUserNotices = async (user_id) => {
     try {
-      const res = await axios.get(`${import.meta.env.BACKEND_URL}/notices/user-notices`, {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/user-notices`, {
         params: { user_id }
       });
 
       const enrichedUserNotices = await Promise.all(
         res.data.map(async (notice) => {
           try {
-            const userRes = await axios.get(`${import.meta.env.BACKEND_URL}/user-name/${notice.user_id}`);
+            const userRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/user-name/${notice.user_id}`);
             const { author_name, flat_id } = userRes.data;
             return { ...notice, author_name, flat_id };
           } catch {

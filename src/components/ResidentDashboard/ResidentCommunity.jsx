@@ -47,7 +47,7 @@ const ResidentCommunity = () => {
     const fetchBlogs = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${import.meta.env.BACKEND_URL}/blogs/all-blogs`, {
+        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/all-blogs`, {
           params: { society_id: decoded?.society_code }
         });
 
@@ -58,7 +58,7 @@ const ResidentCommunity = () => {
             let authorName = 'Community Member';
             if (blog.author_id) {
               try {
-                const authorRes = await axios.get(`${import.meta.env.BACKEND_URL}/blogs/author-name/${blog.author_id}`);
+                const authorRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/author-name/${blog.author_id}`);
                 authorName = authorRes.data?.author_name || 'Unknown';
               } catch {
                 authorName = 'Unknown';
@@ -111,7 +111,7 @@ const ResidentCommunity = () => {
 
       if (isEditing && selectedBlog) {
         response = await axios.put(
-          `${import.meta.env.BACKEND_URL}/blogs/update-blog/${selectedBlog.post_id || selectedBlog.id}`,
+          `${import.meta.env.VITE_BACKEND_URL}/blogs/update-blog/${selectedBlog.post_id || selectedBlog.id}`,
           { title, content, tags: selectedTags }
         );
       } else {
@@ -123,7 +123,7 @@ const ResidentCommunity = () => {
           society_id: decoded?.society_code
         };
 
-        response = await axios.post(`${import.meta.env.BACKEND_URL}/blogs/add-blog`, {
+        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/blogs/add-blog`, {
           blog: newBlog
         });
       }
@@ -131,7 +131,7 @@ const ResidentCommunity = () => {
       if (response.data.success) {
         showToast(isEditing ? 'Blog updated successfully!' : 'Blog posted!');
         resetForm();
-        const refreshResponse = await axios.get(`${import.meta.env.BACKEND_URL}/blogs/all-blogs`, {
+        const refreshResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/all-blogs`, {
           params: { society_id: decoded?.society_code }
         });
 
@@ -140,7 +140,7 @@ const ResidentCommunity = () => {
             let authorName = 'Community Member';
             if (blog.author_id) {
               try {
-                const authorRes = await axios.get(`${import.meta.env.BACKEND_URL}/blogs/author-name/${blog.author_id}`);
+                const authorRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/author-name/${blog.author_id}`);
                 authorName = authorRes.data?.author_name || 'Unknown';
               } catch {
                 authorName = 'Unknown';

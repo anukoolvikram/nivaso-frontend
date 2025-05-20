@@ -49,7 +49,7 @@ const FederationLogin = () => {
     };
 
     try {
-      const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/federation/register`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -78,7 +78,7 @@ const FederationLogin = () => {
     const payload = { email, password };
 
     try {
-      const response = await fetch(`${import.meta.env.BACKEND_URL}/auth/federation/login`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -120,6 +120,7 @@ const FederationLogin = () => {
                   setEmail(e.target.value);
                   setErrorMessage("");
                 }}
+                placeholder="email@example.com"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
                 required
               />
@@ -134,6 +135,7 @@ const FederationLogin = () => {
                   setPassword(e.target.value);
                   setErrorMessage("");
                 }}
+                placeholder="Enter password"
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
                 required
               />
@@ -167,10 +169,15 @@ const FederationLogin = () => {
         ) : (
           // Registration
           <form onSubmit={handleSubmit}>
+            // Only showing changed input elements below for brevity
+
+            {/* Registration Form */}
+
             <div className="mb-3">
               <label>Email</label>
               <input
                 type="email"
+                placeholder="email@example.com"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -185,6 +192,7 @@ const FederationLogin = () => {
               <label>Password</label>
               <input
                 type={showPassword ? "text" : "password"}
+                placeholder="Create a strong password"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -193,19 +201,13 @@ const FederationLogin = () => {
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
                 required
               />
-              <span
-                className="absolute right-3 mt-3 cursor-pointer text-gray-500"
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <HiEyeOff /> : <HiEye />}
-              </span>
             </div>
-
 
             <div className="mb-3 relative">
               <label>Confirm Password</label>
               <input
                 type={showConfirmPassword ? "text" : "password"}
+                placeholder="Re-enter your password"
                 value={confirmPassword}
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
@@ -214,69 +216,52 @@ const FederationLogin = () => {
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
                 required
               />
-              <span
-                className="absolute right-3 mt-3 cursor-pointer text-gray-500"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              >
-                {showPassword ? <HiEyeOff /> : <HiEye />}
-              </span>
             </div>
-{/* 
-            <div className="flex items-center mb-3">
+
+            <div className="mb-3">
+              <label>Federation Name</label>
               <input
-                type="checkbox"
-                checked={isFederation}
-                onChange={() => setIsFederation(!isFederation)}
-                className="mr-2"
+                type="text"
+                placeholder="Enter your federation's name"
+                value={fedName}
+                onChange={(e) => {
+                  setFedName(e.target.value);
+                  setErrorMessage("");
+                }}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                required
               />
-              <label>Are you a Federation?</label>
-            </div> */}
+            </div>
 
-            {/* {isFederation && (
-              <> */}
-                <div className="mb-3">
-                  <label>Federation Name</label>
-                  <input
-                    type="text"
-                    value={fedName}
-                    onChange={(e) => {
-                      setFedName(e.target.value);
-                      setErrorMessage("");
-                    }}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
-                </div>
+            <div className="mb-3">
+              <label>Number of Apartments</label>
+              <input
+                type="number"
+                placeholder="E.g., 24"
+                value={numApartments}
+                onChange={(e) => {
+                  setNumApartments(e.target.value);
+                  setErrorMessage("");
+                }}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                required
+              />
+            </div>
 
-                <div className="mb-3">
-                  <label>Number of Apartments</label>
-                  <input
-                    type="number"
-                    value={numApartments}
-                    onChange={(e) => {
-                      setNumApartments(e.target.value);
-                      setErrorMessage("");
-                    }}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label>Number of Tenements</label>
-                  <input
-                    type="number"
-                    value={numTenements}
-                    onChange={(e) => {
-                      setNumTenements(e.target.value);
-                      setErrorMessage("");
-                    }}
-                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                    required
-                  />
-                </div>
-              {/* </>
-            )} */}
+            <div className="mb-3">
+              <label>Number of Tenements</label>
+              <input
+                type="number"
+                placeholder="E.g., 48"
+                value={numTenements}
+                onChange={(e) => {
+                  setNumTenements(e.target.value);
+                  setErrorMessage("");
+                }}
+                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                required
+              />
+            </div>
 
             {errorMessage && (
               <div className="mb-4 text-red-600 bg-red-100 border border-red-300 px-4 py-2 rounded">
