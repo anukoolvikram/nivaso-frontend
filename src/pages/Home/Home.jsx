@@ -174,7 +174,11 @@ const Home = () => {
         <div
           key={section}
           id={section}
-          className="min-h-screen flex items-center justify-center"
+             className={`w-full ${
+              section === "hero"
+                ? "min-h-screen flex items-center justify-center"
+                : "py-12 sm:py-16 md:py-20"
+            }`}
         >
           {section === "hero" && (
             <div className="relative w-full">
