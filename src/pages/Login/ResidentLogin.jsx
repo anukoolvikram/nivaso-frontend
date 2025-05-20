@@ -38,63 +38,74 @@ const ResidentLogin = () => {
     }
   };
 
+  const InputField = ({ label, type = "text", value, onChange, placeholder, icon, toggleIcon }) => (
+    <div className="mb-4 relative">
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={type}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
+          required
+        />
+        {icon && (
+          <span
+            className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
+            onClick={toggleIcon}
+          >
+            {icon}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-50 py-8 px-4">
-      <div className="border-2 border-black p-6 bg-white shadow-lg rounded-md w-full max-w-xl">
-        <h2 className="text-xl font-bold text-center text-black mb-5">
+    <div className="flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md bg-white border border-gray-200 rounded-xl shadow-md p-6">
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
           Resident Login
         </h2>
 
         <form onSubmit={handleLogin}>
-          <div className="mb-3 flex">
-            <label className="form-label w-1/3">Email:</label>
-            <input
-              type="email"
-              name="email"
-              value={loginEmail}
-              onChange={(e) => {
-                setLoginEmail(e.target.value);
-                setErrorMessage("");
-              }}
-              placeholder="email@example.com"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-              required
-            />
-          </div>
+          <InputField
+            label="Email"
+            type="email"
+            value={loginEmail}
+            onChange={(e) => {
+              setLoginEmail(e.target.value);
+              setErrorMessage("");
+            }}
+            placeholder="email@example.com"
+          />
 
-          <div className="mb-3 flex relative">
-            <label className="form-label w-1/3">Password:</label>
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              value={loginPassword}
-              onChange={(e) => {
-                setLoginPassword(e.target.value);
-                setErrorMessage("");
-              }}
-              placeholder="Enter password"
-              className="w-full px-4 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-black"
-              required
-            />
-            <span
-              className="absolute right-3 top-2 cursor-pointer text-gray-500 text-xl"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? <HiEyeOff /> : <HiEye />}
-            </span>
-          </div>
+          <InputField
+            label="Password"
+            type={showPassword ? "text" : "password"}
+            value={loginPassword}
+            onChange={(e) => {
+              setLoginPassword(e.target.value);
+              setErrorMessage("");
+            }}
+            placeholder="Enter your password"
+            icon={showPassword ? <HiEyeOff /> : <HiEye />}
+            toggleIcon={() => setShowPassword(!showPassword)}
+          />
 
           {errorMessage && (
-            <div className="mb-4 text-red-600 bg-red-100 border border-red-300 px-4 py-2 rounded">
+            <div className="mb-4 text-sm text-red-700 bg-red-100 px-4 py-2 rounded border border-red-300">
               {errorMessage}
             </div>
           )}
 
-          <div className="flex justify-center mt-4">
-            <button type="submit" className="px-4 py-2 bg-black text-white rounded-lg">
-              Login
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition"
+          >
+            Login
+          </button>
         </form>
       </div>
     </div>

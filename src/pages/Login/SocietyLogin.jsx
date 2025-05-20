@@ -26,7 +26,6 @@ const SocietyLogin = () => {
 
   const handleChange = (e) => {
     const { name, value, type } = e.target;
-
     if (type === "number") {
       if (value === "" || (!isNaN(value) && Number(value) > 0)) {
         setFormData({ ...formData, [name]: value });
@@ -39,13 +38,10 @@ const SocietyLogin = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
-
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/register`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
@@ -58,10 +54,7 @@ const SocietyLogin = () => {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Something went wrong");
-      }
+      if (!response.ok) throw new Error(data.error || "Something went wrong");
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user_type", data.user_type);
@@ -71,7 +64,7 @@ const SocietyLogin = () => {
         state: { society_code: formData.societyCode },
       });
     } catch (error) {
-      console.error("Error during registration:", error);
+      console.error("Registration Error:", error);
       setErrorMessage(error.message || "Registration failed");
     }
   };
@@ -81,26 +74,22 @@ const SocietyLogin = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/login`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),
       });
 
       const data = await response.json();
-
       if (response.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user_type", data.user_type);
         localStorage.setItem("society_code", data.society_code);
-
         navigate("/society/dashboard");
       } else {
         setErrorMessage(data.error || "Invalid credentials");
       }
     } catch (error) {
-      console.error("Error logging in:", error);
-      setErrorMessage("Server error");
+      console.error("Login Error:", error);
+      setErrorMessage("Server error. Please try again later.");
     }
   };
 
@@ -109,64 +98,82 @@ const SocietyLogin = () => {
     setErrorMessage("");
   };
 
+  const InputField = ({ label, name, type = "text", value, onChange, isPassword = false, showPassword, togglePassword }) => (
+    <div className="mb-4 relative">
+      <label className="block text-sm font-medium mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={isPassword && !showPassword ? "password" : type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={`Enter ${label}`}
+          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
+          required
+        />
+        {isPassword && (
+          <span
+            className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
+            onClick={togglePassword}
+          >
+            {showPassword ? <HiEyeOff /> : <HiEye />}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gray-50 py-8 px-4">
-      <div className="border-2 border-black p-6 bg-white shadow-lg rounded-md w-full max-w-xl">
-        <h2 className="text-xl font-bold text-center text-black mb-5">
+    <div className="flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-lg bg-white border border-gray-200 rounded-xl shadow-md p-6">
+        <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
           {isRegistered ? "Society Login" : "Society Registration"}
         </h2>
 
         {isRegistered ? (
           <form onSubmit={handleLogin}>
-            <div className="mb-3 flex">
-              <label className="w-1/3">Email:</label>
-              <input
-                type="email"
-                value={loginEmail}
-                onChange={(e) => {
-                  setLoginEmail(e.target.value);
-                  setErrorMessage("");
-                }}
-                placeholder="email@example.com"
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
-                required
-              />
-            </div>
-            <div className="mb-3 flex relative">
-              <label className="w-1/3">Password:</label>
-              <input
-                type={showLoginPassword ? "text" : "password"}
-                value={loginPassword}
-                onChange={(e) => {
-                  setLoginPassword(e.target.value);
-                  setErrorMessage("");
-                }}
-                placeholder="Enter password"
-                className="w-full px-4 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-black"
-                required
-              />
-              <span
-                className="absolute right-3 top-2 cursor-pointer text-gray-500 text-xl"
-                onClick={() => setShowLoginPassword(!showLoginPassword)}
-              >
-                {showLoginPassword ? <HiEyeOff /> : <HiEye />}
-              </span>
-            </div>
+            <InputField
+              label="Email"
+              name="loginEmail"
+              type="email"
+              value={loginEmail}
+              onChange={(e) => {
+                setLoginEmail(e.target.value);
+                setErrorMessage("");
+              }}
+            />
+            <InputField
+              label="Password"
+              name="loginPassword"
+              isPassword
+              value={loginPassword}
+              showPassword={showLoginPassword}
+              onChange={(e) => {
+                setLoginPassword(e.target.value);
+                setErrorMessage("");
+              }}
+              togglePassword={() => setShowLoginPassword(!showLoginPassword)}
+            />
 
             {errorMessage && (
-              <div className="mb-4 text-red-600 bg-red-100 border border-red-300 px-4 py-2 rounded">
+              <div className="mb-4 text-sm text-red-700 bg-red-100 px-4 py-2 rounded border border-red-300">
                 {errorMessage}
               </div>
             )}
 
-            <div className="flex justify-center mt-4">
-              <button type="submit" className="px-4 py-2 bg-black text-white rounded-lg">
-                Login
-              </button>
-            </div>
-            <div className="text-center mt-3">
-              <button type="button" onClick={toggleForm} className="text-blue-600">
-                Don't have an account? Register here
+            <button
+              type="submit"
+              className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition"
+            >
+              Login
+            </button>
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={toggleForm}
+                className="text-blue-600 hover:underline text-sm"
+              >
+                Don’t have an account? Register
               </button>
             </div>
           </form>
@@ -180,50 +187,41 @@ const SocietyLogin = () => {
               {
                 label: "Password",
                 name: "password",
-                type: showRegisterPassword ? "text" : "password",
                 isPassword: true,
+                showPassword: showRegisterPassword,
+                togglePassword: () => setShowRegisterPassword(!showRegisterPassword),
               },
               { label: "No of Wings", name: "noOfWings", type: "number" },
               { label: "Floor per Wing", name: "floorPerWing", type: "number" },
               { label: "Rooms per Floor", name: "roomsPerFloor", type: "number" },
-            ].map(({ label, name, type = "text", isPassword }) => (
-              <div key={name} className="mb-3 flex relative">
-                <label className="w-1/3">{label}:</label>
-                <input
-                  type={type}
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChange}
-                  placeholder={`Enter ${label}`}
-                  className="w-full px-4 py-2 border rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-black"
-                  required
-                  min={type === "number" ? "1" : undefined}
-                />
-                {isPassword && (
-                  <span
-                    className="absolute right-3 top-2 cursor-pointer text-gray-500 text-xl"
-                    onClick={() => setShowRegisterPassword(!showRegisterPassword)}
-                  >
-                    {showRegisterPassword ? <HiEyeOff /> : <HiEye />}
-                  </span>
-                )}
-              </div>
+            ].map((field) => (
+              <InputField
+                key={field.name}
+                {...field}
+                value={formData[field.name]}
+                onChange={handleChange}
+              />
             ))}
 
             {errorMessage && (
-              <div className="mb-4 text-red-600 bg-red-100 border border-red-300 px-4 py-2 rounded">
+              <div className="mb-4 text-sm text-red-700 bg-red-100 px-4 py-2 rounded border border-red-300">
                 {errorMessage}
               </div>
             )}
 
-            <div className="flex justify-center mt-4">
-              <button type="submit" className="px-4 py-2 bg-black text-white rounded-lg">
-                Register
-              </button>
-            </div>
-            <div className="text-center mt-3">
-              <button type="button" onClick={toggleForm} className="text-blue-600">
-                Already have an account? Login here
+            <button
+              type="submit"
+              className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition"
+            >
+              Register
+            </button>
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={toggleForm}
+                className="text-blue-600 hover:underline text-sm"
+              >
+                Already have an account? Login
               </button>
             </div>
           </form>

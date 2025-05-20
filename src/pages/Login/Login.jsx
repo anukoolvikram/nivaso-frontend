@@ -7,13 +7,13 @@ import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
 const components = {
-  Federation: () => <div className="p-4 border rounded-lg"><FederationLogin/></div>,
-  Society: () => <div className="p-4 border rounded-lg"><SocietyLogin/></div>,
-  Resident: () => <div className="p-4 border rounded-lg"><ResidentLogin/></div>,
+  Federation: () => <div className="p-6 bg-white rounded-xl shadow-md w-full"><FederationLogin /></div>,
+  Society: () => <div className="p-6 bg-white rounded-xl shadow-md w-full"><SocietyLogin /></div>,
+  Resident: () => <div className="p-6 bg-white rounded-xl shadow-md w-full"><ResidentLogin /></div>,
 };
 
 let decoded = null;
-const token = localStorage.getItem('token');
+const token = localStorage.getItem("token");
 if (token) {
   decoded = jwtDecode(token);
 }
@@ -22,39 +22,34 @@ export default function ButtonSwitcher() {
   const [active, setActive] = useState("Federation");
   const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   if (token) {
-  //     navigate('/');
-  //   }
-  // }, []);
-
   return (
-    <div className="h-screen">
-      <div className="flex flex-col items-center space-y-6 relative">
-        {/* Home Button */}
-        <div className="flex items-center justify-between w-full p-2" style={{ backgroundColor: "#44A3B4" }}>
-          <img
-            src="/nivasoLogo2.jpg"
-            alt="Nivaso Logo"
-            className="h-10 w-auto object-contain cursor-pointer"
-          />
-          <button
-            onClick={() => navigate('/')}
-            className="bg-gray-800 hover:bg-gray-700 text-white font-medium px-4 py-2 rounded-md shadow-sm transition-colors duration-200"
-          >
-            Home
-          </button>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <div className="w-full flex flex-row justify-between items-center p-4 bg-[#44A3B4] shadow-md">
+        <img
+          src="/nivasoLogo2.jpg"
+          alt="Nivaso Logo"
+          className="h-10 w-auto cursor-pointer"
+          onClick={() => navigate("/")}
+        />
+        <button
+          onClick={() => navigate("/")}
+          className=" sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white font-medium px-4 py-2 transition"
+        >
+          Home
+        </button>
+      </div>
 
-
-        {/* Selector Buttons */}
-        <div className="relative flex space-x-6">
+      {/* Content */}
+      <div className="flex-1 flex flex-col items-center justify-start sm:p-6">
+        {/* Tab Buttons */}
+        <div className="flex space-x-6 mb-8">
           {["Federation", "Society", "Resident"].map((comp) => (
             <div key={comp} className="flex flex-col items-center">
               <button
                 onClick={() => setActive(comp)}
-                className={`px-4 py-2 font-semibold transition-colors ${
-                  active === comp ? "text-blue-600" : "text-gray-600"
+                className={`text-lg sm:text-xl lg:mt-2 mt-4 font-semibold transition-colors ${
+                  active === comp ? "text-blue-600" : "text-gray-600 hover:text-blue-400"
                 }`}
               >
                 {comp}
@@ -62,15 +57,15 @@ export default function ButtonSwitcher() {
               {active === comp && (
                 <motion.div
                   layoutId="underline"
-                  className="h-1 w-12 bg-blue-600 rounded"
+                  className="h-1 w-12 mt-2 bg-blue-600 rounded"
                 />
               )}
             </div>
           ))}
         </div>
 
-        {/* Selected Component */}
-        <div className="w-full px-4 md:px-20">{components[active]()}</div>
+        {/* Component Display */}
+        <div className="w-full max-w-xl">{components[active]()}</div>
       </div>
     </div>
   );

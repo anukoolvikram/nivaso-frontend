@@ -11,7 +11,7 @@ const Contact = () => {
   }
 
   return (
-    <div className="-mt-4">
+    <div className="lg:-mt-12 mt-6">
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -25,6 +25,7 @@ const Contact = () => {
         <div className="relative mx-auto max-w-c-1390 p-6">
           <div className="absolute left-0 top-0 -z-1 h-2/3 w-full rounded-lg bg-gradient-to-t from-transparent to-[#dee7ff47] dark:bg-gradient-to-t dark:to-[#252A42]"></div>
           
+          {/* form */}
           <div className="flex flex-col-reverse flex-wrap gap-8 md:flex-row md:flex-nowrap md:justify-between xl:gap-10">
             <motion.div
               variants={{
@@ -35,7 +36,7 @@ const Contact = () => {
               whileInView="visible"
               transition={{ duration: 1, delay: 0.1 }}
               viewport={{ once: true }}
-              className="w-3/5 animate_top rounded-lg bg-white shadow-lg border border-strokedark p-6"
+              className="w-full lg:w-3/5 animate_top rounded-lg bg-white shadow-lg border border-strokedark p-6"
             >
               <div className="text-3xl font-semibold text-gray-700 xl:text-sectiontitle2 mb-3">
                 Send a message
@@ -43,13 +44,13 @@ const Contact = () => {
 
               <form action="" method="">
                 <div className="w-full mb-3 flex flex-col gap-7.5 lg:flex-row lg:justify-between">
-                  <input type="text" placeholder="Full name" className="w-1/2 input-field border-2 p-2 rounded border-gray-200" />
-                  <input type="emailj" placeholder="Email address" className="w-1/2 input-field border-2 p-2 rounded border-gray-200" />
+                  <input type="text" placeholder="Full name" className="w-full lg:w-1/2 input-field border-2 p-2 rounded border-gray-200" />
+                  <input type="emailj" placeholder="Email address" className="w-full lg:w-1/2 input-field border-2 p-2 rounded border-gray-200" />
                 </div>
 
                 <div className="w-full mb-3 flex flex-col gap-7.5 lg:flex-row lg:justify-between">
-                  <input type="text" placeholder="Subject" className="w-1/2 input-field border-2 p-2 rounded border-gray-200" />
-                  <input type="text" placeholder="Phone number" className="w-1/2 input-field border-2 p-2 rounded border-gray-200" />
+                  <input type="text" placeholder="Subject" className="w-full lg:w-1/2 input-field border-2 p-2 rounded border-gray-200" />
+                  <input type="text" placeholder="Phone number" className="w-full lg:w-1/2 input-field border-2 p-2 rounded border-gray-200" />
                 </div>
 
                 <textarea
@@ -58,7 +59,7 @@ const Contact = () => {
                   className="w-full input-field resize-none mb-2 p-2 border-2 px-2 rounded border-gray-200"
                 ></textarea>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 mt-2">
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input type="checkbox" id="agree-checkbox" className="peer hidden" />
                     <span className="w-5 h-5 flex items-center justify-center border-2 border-gray-400 rounded-md peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-all text-white text-sm">
@@ -69,8 +70,8 @@ const Contact = () => {
                     </span>
                   </label>
                 
-                  <div className="flex justify-start">
-                    <button className="bg-gray-300 p-2 text-black">
+                  <div className="flex justify-start mt-2">
+                    <button className="bg-gray-600 p-2 px-4 text-white">
                       Send
                     </button>
                   </div>

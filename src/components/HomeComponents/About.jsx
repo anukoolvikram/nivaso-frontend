@@ -2,26 +2,26 @@ import { motion } from "framer-motion";
 
 const About = () => {
   return (
-    <div className="mx-auto px-6 lg:px-12 py-10 space-y-16 lg:-mt-24">
+    <div className="mx-auto px-6 lg:px-12 py-10 lg:-mt-30 -mt-4">
       {/* Header */}
       <motion.h1
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="w-full text-center  bg-gray-500 text-white pb-2 rounded-xl shadow-lg"
+        className="w-full text-center bg-gray-500 text-white py-2 rounded-xl shadow-lg"
       >
         <span className="font-bold text-3xl">ABOUT US</span>
       </motion.h1>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start mt-4">
         {/* Left: Our Story */}
         <motion.div
           initial={{ opacity: 0, x: -40 }}
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="bg-white p-8 rounded-3xl shadow-lg"
+          className="bg-white p-7 rounded-3xl shadow-lg"
         >
           {/* <p className="text-md text-gray-700 leading-relaxed">
             <span className="font-bold text-primary">Nivaso</span> was founded with one core belief: managing residential communities shouldn't feel like a second job. 
@@ -37,8 +37,8 @@ const About = () => {
                 {index + 1}
               </div> */}
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">{item.title}</h3>
-                <p className="text-gray-600">{item.description}</p>
+                <h3 className="text-2xl font-semibold text-gray-800">{item.title}</h3>
+                <p className="text-gray-600 mb-4">{item.description}</p>
               </div>
             </div>
           ))}
@@ -50,9 +50,9 @@ const About = () => {
           whileInView={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="bg-white p-8 rounded-3xl shadow-lg space-y-6"
+          className="bg-white p-6 rounded-3xl shadow-lg space-y-6"
         >
-          <h2 className="ml-4 text-xl lg:text-xl font-bold text-gray-800">
+          <h2 className="text-xl lg:text-xl font-semibold text-gray-800">
             What Makes Nivaso Different?
           </h2>
 
