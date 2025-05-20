@@ -144,7 +144,7 @@ const Home = () => {
           {!isLoggedIn ? (
             <button
               onClick={handleLoginNavigation}
-              className="block w-full bg-blue-500 text-white px-3 py-2 mt-2 rounded-md"
+              className="block w-full bg-white border hover:bg-gray-600 hover:text-white px-3 py-2 mt-2"
             >
               Login
             </button>
