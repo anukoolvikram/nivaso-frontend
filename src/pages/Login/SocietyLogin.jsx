@@ -236,14 +236,15 @@ const SocietyLogin = () => {
                   key={field}
                   label={field.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}
                   name={field}
-                  type={field.includes("password") ? "password" : field.includes("email") ? "email" : "text"}
+                  type={field === "password" ? (showRegisterPassword ? "text" : "password") : field.includes("email") ? "email" : "text"}
                   isPassword={field === "password"}
-                  showPassword={field === "password" ? showRegisterPassword : undefined}
-                  togglePassword={field === "password" ? () => setShowRegisterPassword(!showRegisterPassword) : undefined}
+                  showPassword={showRegisterPassword}
+                  togglePassword={() => setShowRegisterPassword(!showRegisterPassword)}
                   value={formData[field]}
                   onChange={handleChange}
                 />
               ))}
+
 
               {!hasSocietyCode && (
                 <div className="mb-4">
