@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import LoadingSpinner from '../LoadingSpinner.jsx';
+import CircularProgress from '@mui/material/CircularProgress';
+
+
 
 const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     const [societyCode, setSocietyCode] = useState(propSocietyCode || localStorage.getItem("society_code"));
@@ -13,8 +17,8 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     const [isNewFlat, setIsNewFlat] = useState(false);
     const [isConfirmed, setIsConfirmed] = useState(false);
     const [serverError, setServerError] = useState("");
-
-
+    const [isLoadingFlats, setIsLoadingFlats] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     const navigate = useNavigate();
 
@@ -25,6 +29,8 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     }, [societyCode]);
 
     const fetchFlats = async () => {
+        setIsLoadingFlats(true);
+
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/getFlatsData/${societyCode}`);
             if (!response.ok) throw new Error("Failed to fetch");
@@ -43,6 +49,9 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
             setFlats(sortedFlats);
         } catch (error) {
             console.error("Error fetching flats:", error);
+        }
+        finally {
+          setIsLoadingFlats(false);
         }
     };
 
@@ -91,7 +100,8 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
         if (!validateDetails()) {
             return;
         }
-        
+        setSaving(true);
+
         try {
           const { id, flat_id, occupancy, owner, resident } = editedData;
       
@@ -137,6 +147,9 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
       } catch (error) {
           console.error("Error saving flat data:", error);
           setServerError("Server error. Please try again later.");
+      }
+      finally {
+        setSaving(false); 
       }
     };
 
@@ -230,8 +243,18 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
 
     return (
         <div className=" bg-white rounded-xl">
+           <div className="flex justify-end mt-6">
+              <button
+                onClick={handleAddNew}
+                className="bg-teal-500 hover:bg-teal-400 text-white font-medium px-5 py-2 transition"
+              >
+                Add New Flat
+              </button>
+            </div>
         
-        {flats.length > 0 ? (
+        {isLoadingFlats ? (
+            <LoadingSpinner />
+          ) : flats.length > 0 ? (
           <div className="overflow-x-auto mt-2 shadow">
             <table className="w-full table-auto border-collapse rounded shadow-sm overflow-hidden">
               <thead>
@@ -289,15 +312,6 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
           <p className="text-gray-600">No flats found for this society.</p>
         )}
 
-        <div className="flex items-end mt-6">
-          {/* <h2 className="text-2xl font-semibold text-gray-800">Flat Management</h2> */}
-          <button
-            onClick={handleAddNew}
-            className="bg-teal-500 hover:bg-teal-400 text-white font-medium px-5 py-2 rounded-lg transition"
-          >
-            Add New Flat
-          </button>
-        </div>
       
         {/* Modal for Add/Edit Flat */}
         {showModal && (
@@ -430,15 +444,18 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
               </button>
               <button
                 onClick={saveAllData}
-                disabled={!isNewFlat && !isConfirmed}
-                className={`px-5 py-2 rounded-md font-medium transition ${
+                disabled={saving || (!isNewFlat && !isConfirmed)}
+                className={`px-5 py-2 flex items-center justify-center gap-2 rounded-md font-medium transition ${
                   isNewFlat || isConfirmed
                     ? 'bg-teal-600 hover:bg-teal-700 text-white'
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {isNewFlat ? "Create Flat" : "Save Changes"}
+                {saving ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : isNewFlat ? "Create Flat" : "Save Changes"}
               </button>
+
             </div>
           </div>
         </div>

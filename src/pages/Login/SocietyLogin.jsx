@@ -1,6 +1,33 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiEye, HiEyeOff } from "react-icons/hi";
+import CircularProgress from "@mui/material/CircularProgress";
+
+// ✅ Reusable input field to avoid re-creation
+const InputField = ({ label, name, type = "text", value, onChange, isPassword = false, showPassword, togglePassword }) => (
+  <div className="mb-4 relative">
+    <label className="block text-sm font-medium mb-1">{label}</label>
+    <div className="relative">
+      <input
+        type={isPassword && !showPassword ? "password" : type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        placeholder={`Enter ${label}`}
+        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
+        required
+      />
+      {isPassword && (
+        <span
+          className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
+          onClick={togglePassword}
+        >
+          {showPassword ? <HiEyeOff /> : <HiEye />}
+        </span>
+      )}
+    </div>
+  </div>
+);
 
 const SocietyLogin = () => {
   const [formData, setFormData] = useState({
@@ -18,9 +45,9 @@ const SocietyLogin = () => {
   const [loginPassword, setLoginPassword] = useState("");
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
-
   const [isRegistered, setIsRegistered] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -38,6 +65,7 @@ const SocietyLogin = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/register`, {
         method: "POST",
@@ -60,17 +88,22 @@ const SocietyLogin = () => {
       localStorage.setItem("user_type", data.user_type);
       localStorage.setItem("society_code", formData.societyCode);
 
+      console.log('navigating to dashboard');
+
       navigate("/society/dashboard", {
         state: { society_code: formData.societyCode },
       });
     } catch (error) {
       console.error("Registration Error:", error);
       setErrorMessage(error.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
       const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/login`, {
         method: "POST",
@@ -90,6 +123,8 @@ const SocietyLogin = () => {
     } catch (error) {
       console.error("Login Error:", error);
       setErrorMessage("Server error. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,31 +132,6 @@ const SocietyLogin = () => {
     setIsRegistered(!isRegistered);
     setErrorMessage("");
   };
-
-  const InputField = ({ label, name, type = "text", value, onChange, isPassword = false, showPassword, togglePassword }) => (
-    <div className="mb-4 relative">
-      <label className="block text-sm font-medium mb-1">{label}</label>
-      <div className="relative">
-        <input
-          type={isPassword && !showPassword ? "password" : type}
-          name={name}
-          value={value}
-          onChange={onChange}
-          placeholder={`Enter ${label}`}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
-          required
-        />
-        {isPassword && (
-          <span
-            className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
-            onClick={togglePassword}
-          >
-            {showPassword ? <HiEyeOff /> : <HiEye />}
-          </span>
-        )}
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex items-center justify-center bg-gray-50">
@@ -163,15 +173,18 @@ const SocietyLogin = () => {
 
             <button
               type="submit"
-              className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition"
+              className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition flex justify-center items-center gap-2"
+              disabled={loading}
             >
-              Login
+              {loading ? <CircularProgress size={20} style={{ color: "white" }} /> : "Login"}
             </button>
+
             <div className="text-center mt-4">
               <button
                 type="button"
                 onClick={toggleForm}
                 className="text-blue-600 hover:underline text-sm"
+                disabled={loading}
               >
                 Don’t have an account? Register
               </button>
@@ -211,15 +224,18 @@ const SocietyLogin = () => {
 
             <button
               type="submit"
-              className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition"
+              className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition flex justify-center items-center gap-2"
+              disabled={loading}
             >
-              Register
+              {loading ? <CircularProgress size={20} style={{ color: "white" }} /> : "Register"}
             </button>
+
             <div className="text-center mt-4">
               <button
                 type="button"
                 onClick={toggleForm}
                 className="text-blue-600 hover:underline text-sm"
+                disabled={loading}
               >
                 Already have an account? Login
               </button>

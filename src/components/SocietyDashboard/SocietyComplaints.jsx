@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import LoadingSpinner from '../LoadingSpinner';
+import CircularProgress from '@mui/material/CircularProgress';
+
 
 const getTimeAgo = (dateString) => {
   const now = new Date();
@@ -28,6 +31,7 @@ const SocietyComplaints = () => {
   const [newStatus, setNewStatus] = useState('');
   const [dismissComment, setDismissComment] = useState('');
   const [activeStatus, setActiveStatus] = useState('Received');
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const token = localStorage.getItem('token');
   const decoded = token ? jwtDecode(token) : null;
@@ -118,12 +122,13 @@ const SocietyComplaints = () => {
   };
   
 
-  const handleSaveStatus = async () => {
+ const handleSaveStatus = async () => {
     if (newStatus === 'Dismissed' && dismissComment.trim() === '') {
       alert('Please enter a dismissal comment.');
       return;
     }
 
+    setUpdatingStatus(true);
     try {
       await axios.put(`${import.meta.env.VITE_BACKEND_URL}/complaints/change-status`, {
         id: selectedComplaint.id,
@@ -146,9 +151,12 @@ const SocietyComplaints = () => {
       }));
     } catch (err) {
       console.error('Error saving status:', err);
+    } finally {
+      setUpdatingStatus(false);
+      setShowSaveButton(false);
     }
-    setShowSaveButton(false)
   };
+
 
   const handleBack = () => {
     setSelectedComplaint(null);
@@ -156,7 +164,9 @@ const SocietyComplaints = () => {
     setDismissComment('');
   };
 
-  if (loading) return <div className="text-center text-gray-600 mt-8">Loading complaints...</div>;
+  if (loading) 
+      return <LoadingSpinner/>;
+  
   if (error) return <div className="text-center text-red-500 mt-8">{error}</div>;
   if (complaints.length === 0) return <div className="text-center text-gray-500 mt-8">No complaints found.</div>;
 
@@ -222,10 +232,12 @@ const SocietyComplaints = () => {
           {(newStatus !== selectedComplaint.status || showSaveButton) && (
             <button
               onClick={handleSaveStatus}
-              className="bg-teal-500 text-white px-4 py-2 hover:bg-teal-400 mb-4"
+              disabled={updatingStatus}
+              className="bg-teal-500 text-white px-4 py-2 hover:bg-teal-400 mb-4 flex items-center justify-center gap-2"
             >
-              Update Status
+              {updatingStatus ? <CircularProgress size={20} color="inherit" /> : 'Update Status'}
             </button>
+
           )}
 
         </div>

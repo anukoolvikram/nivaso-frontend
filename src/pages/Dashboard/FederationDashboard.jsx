@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import FederationSocietySetup from '../../components/FederationDashboard/FederationSocietySetup';
 import FederationNoticeboard from '../../components/FederationDashboard/FederationNoticeboard';
+import FederationProfile from '../../components/FederationDashboard/FederationProfile';
 
 const FederationDashboard = () => {
   const navigate = useNavigate();
@@ -16,18 +17,16 @@ const FederationDashboard = () => {
     const isFederation = localStorage.getItem('user_type') === 'federation';
 
     if (!isLoggedIn || !isFederation) {
-      console.log('go to login');
       navigate('/login');
     }
   }, [navigate]);
 
   useEffect(() => {
-    // Save page state to localStorage when it changes
     localStorage.setItem('currentDashboardPage', currentPage);
   }, [currentPage]);
 
   const handleLogout = () => {
-    localStorage.clear(); // Or remove specific keys if needed
+    localStorage.clear(); 
     navigate('/');
   };
 
@@ -55,6 +54,11 @@ const FederationDashboard = () => {
         </div>
 
         {/* Page-specific content */}
+        {currentPage === "About" && (
+          <div className="text-gray-700">
+            <FederationProfile/>
+          </div>
+        )}
         {currentPage === "Society Setup" && (
           <div className="text-gray-700">
             <FederationSocietySetup/>

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
-import { useToast } from '../../context/ToastContext'; // Replace path if needed
+import { useToast } from '../../context/ToastContext'; 
 import { HiEye, HiEyeOff } from "react-icons/hi";
-
+import LoadingSpinner from '../LoadingSpinner'
+import CircularProgress from '@mui/material/CircularProgress';
 
 const ResidentProfile = () => {
   const [profile, setProfile] = useState(null);
@@ -13,6 +14,8 @@ const ResidentProfile = () => {
   const [formData, setFormData] = useState({});
   const [passwords, setPasswords] = useState({ oldPassword: '', newPassword: '' });
   const showToast = useToast();
+  const [saving, setSaving] = useState(false);
+  const [isConfirmed, setIsConfirmed] = useState(false);
 
   const token = localStorage.getItem('token');
   const decoded = token ? jwtDecode(token) : null;
@@ -41,6 +44,7 @@ const ResidentProfile = () => {
   }, [userId, showToast]);
 
   const handleUpdate = async () => {
+    setSaving(true); 
     try {
       await axios.put(`${import.meta.env.VITE_BACKEND_URL}/residentProfile/${userId}`, formData);
       setProfile({ ...profile, ...formData });
@@ -48,8 +52,11 @@ const ResidentProfile = () => {
       showToast('Profile updated successfully!', 'success');
     } catch (err) {
       showToast('Error updating profile', 'error');
+    } finally {
+      setSaving(false); 
     }
   };
+
 
   const handlePasswordChange = async () => {
     try {
@@ -63,11 +70,11 @@ const ResidentProfile = () => {
   };
 
   if (!profile) {
-    return <div className="text-center py-8 text-gray-500">Loading profile...</div>;
+    return <LoadingSpinner/>
   }
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-6 space-y-6">
+    <div className="max-w-2xl bg-white rounded-xl shadow-md p-6 space-y-6">
       <div className="flex items-center justify-between">
         {/* <h2 className="text-xl font-semibold text-gray-800">Resident Profile</h2> */}
         {(editMode || passwordMode) && (
@@ -87,22 +94,22 @@ const ResidentProfile = () => {
       {!editMode && !passwordMode && (
         <>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-gray-700">
-            <div className="font-medium">Name:</div>
+            <div className="font-medium">Name</div>
             <div>{profile.name}</div>
 
-            <div className="font-medium">Email:</div>
+            <div className="font-medium">Email</div>
             <div>{profile.email}</div>
 
-            <div className="font-medium">Phone:</div>
+            <div className="font-medium">Phone</div>
             <div>{profile.phone}</div>
 
-            <div className="font-medium">Address:</div>
+            <div className="font-medium">Address</div>
             <div>{profile.address}</div>
 
-            <div className="font-medium">Flat ID:</div>
+            <div className="font-medium">Flat ID</div>
             <div>{profile.flat_id}</div>
 
-            <div className="font-medium">Society Code:</div>
+            <div className="font-medium">Society Code</div>
             <div>{profile.society_code}</div>
             </div>
 
@@ -158,19 +165,44 @@ const ResidentProfile = () => {
               className="w-full border rounded px-3 py-2"
             />
           </div>
+          <div className="flex items-center gap-2 mt-4">
+          <input
+            type="checkbox"
+            id="confirmEdit"
+            checked={isConfirmed}
+            onChange={() => setIsConfirmed((prev) => !prev)}
+            className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+          />
+          <label htmlFor="confirmEdit" className="text-sm text-gray-700">
+            I confirm that the above details are correct
+          </label>
+        </div>
+
           <div className="flex gap-4 mt-4">
             <button
               onClick={handleUpdate}
-              className="px-4 py-2 bg-teal-500 text-white hover:bg-teal-400 transition"
+              disabled={saving || !isConfirmed}
+              className={`px-4 py-2 flex items-center gap-2 transition font-medium ${
+                saving || !isConfirmed
+                  ? 'bg-teal-300 text-white cursor-not-allowed'
+                  : 'bg-teal-500 hover:bg-teal-400 text-white'
+              }`}
             >
-              Save
+              {saving && <CircularProgress size={20} color="inherit" />}
+              {saving ? "Saving..." : "Save"}
             </button>
+
             <button
-              onClick={() => setEditMode(false)}
+              onClick={() => {
+                setEditMode(false);
+                setFormData(profile); 
+                setIsConfirmed(false);
+              }}
               className="px-4 py-2 bg-gray-300 hover:bg-gray-400 transition"
             >
               Cancel
             </button>
+
           </div>
         </div>
       )}

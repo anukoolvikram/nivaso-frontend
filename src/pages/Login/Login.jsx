@@ -5,6 +5,7 @@ import SocietyLogin from "./SocietyLogin";
 import ResidentLogin from "./ResidentLogin";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { useLocation } from "react-router-dom";
 
 const components = {
   Federation: () => <div className="p-6 bg-white rounded-xl shadow-md w-full"><FederationLogin /></div>,
@@ -12,15 +13,35 @@ const components = {
   Resident: () => <div className="p-6 bg-white rounded-xl shadow-md w-full"><ResidentLogin /></div>,
 };
 
-let decoded = null;
-const token = localStorage.getItem("token");
-if (token) {
-  decoded = jwtDecode(token);
-}
-
 export default function ButtonSwitcher() {
   const [active, setActive] = useState("Federation");
   const navigate = useNavigate();
+
+  
+
+// Inside your component:
+const location = useLocation();
+
+useEffect(() => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    try {
+      const role = localStorage.getItem('user_type');
+      const currentPath = location.pathname;
+
+      if ((role === "Federation" || role==='federation') && currentPath !== "/federation/dashboard") {
+        navigate("/federation/dashboard", { replace: true });
+      } else if ((role === "Society" || role==='society') && currentPath !== "/society/dashboard") {
+        navigate("/society/dashboard", { replace: true });
+      } else if ((role === "Resident" || role==='resident') && currentPath !== "/resident/dashboard") {
+        navigate("/resident/dashboard", { replace: true });
+      }
+    } catch (err) {
+      console.error("Invalid token:", err);
+    }
+  }
+}, [navigate, location]);
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -34,7 +55,7 @@ export default function ButtonSwitcher() {
         />
         <button
           onClick={() => navigate("/")}
-          className=" sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white font-medium px-4 py-2 transition"
+          className="sm:mt-0 bg-gray-800 hover:bg-gray-700 text-white font-medium px-4 py-2 transition"
         >
           Home
         </button>

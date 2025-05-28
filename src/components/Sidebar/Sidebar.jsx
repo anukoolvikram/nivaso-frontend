@@ -9,7 +9,7 @@ const Sidebar = ({ currentPage, onPageChange }) => {
     navigate('/');
   }
 
-  const federationPages = ["Society Setup", "Noticeboard"];
+  const federationPages = ["About", "Society Setup", "Noticeboard"];
   const societyPages = ["Flat Setup", "Noticeboard", "Community", "Complaints", "Documents"];
   const residentPages = ["Profile","Noticeboard", "Community", "Complaints"];
 

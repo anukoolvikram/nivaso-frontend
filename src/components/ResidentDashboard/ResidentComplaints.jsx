@@ -1,9 +1,10 @@
-// Updated ResidentComplaints.js with improved UI consistent with ResidentCommunity and Noticeboard
-
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
+import LoadingSpinner from '../LoadingSpinner.jsx'
+import CircularProgress from '@mui/material/CircularProgress';
+
 
 const getTimeAgo = (dateString) => {
   const now = new Date();
@@ -34,6 +35,8 @@ const ResidentComplaints = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
 
   const token = localStorage.getItem('token');
   const decoded = token ? jwtDecode(token) : null;
@@ -61,6 +64,7 @@ const ResidentComplaints = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       await axios.post(`${import.meta.env.VITE_BACKEND_URL}/complaints/post-complaints`, {
         ...formData,
@@ -73,8 +77,11 @@ const ResidentComplaints = () => {
     } catch (err) {
       console.error('Error submitting complaint:', err);
       alert('Failed to post complaint');
+    } finally {
+      setSubmitting(false);
     }
   };
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -84,26 +91,28 @@ const ResidentComplaints = () => {
     }));
   };
 
-  if (loading) return <div className="text-center text-gray-600 mt-8">Loading complaints...</div>;
+  if (loading) return <LoadingSpinner/>
   if (error) return <div className="text-center text-red-500 mt-8">{error}</div>;
 
   return (
     <div className="w-full">
       {!showForm && !selectedComplaint && (
-        <button
-          className="px-4 py-2 mb-4 font-medium bg-blue-500 text-white hover:bg-blue-400 transition"
+       <div className='flex justify-end'>
+         <button
+          className="px-4 py-2 mb-4 font-medium bg-teal-500 text-white hover:bg-teal-400 transition"
           onClick={() => {
             setSelectedComplaint(null);
             setShowForm(true);
           }}
         >
-          Write a Complaint
+          Add Complaint
         </button>
+        </div>
       )}
 
       {/* writing a complaint */}
       {showForm && (
-        <form onSubmit={handleSubmit} className="bg-white border rounded shadow-md space-y-4 mb-6">
+        <form onSubmit={handleSubmit} className="bg-white border rounded shadow-md space-y-4 mb-6 p-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
             <input
@@ -155,12 +164,14 @@ const ResidentComplaints = () => {
           </label>
 
           <div className="flex justify-end gap-3">
-            <button
+           <button
               type="submit"
-              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded"
+              disabled={submitting}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded flex items-center gap-2 justify-center"
             >
-              Submit
+              {submitting ? <CircularProgress size={20} color="inherit" /> : 'Submit'}
             </button>
+
             <button
               type="button"
               className="bg-gray-400 hover:bg-gray-500 text-white px-5 py-2 rounded"

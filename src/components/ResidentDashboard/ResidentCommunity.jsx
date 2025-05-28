@@ -1,11 +1,12 @@
-// Updated ResidentCommunity.js with 'My Blogs' section
-
 import React, { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import { useToast } from '../../context/ToastContext'; 
+import LoadingSpinner from '../LoadingSpinner'
+import CircularProgress from '@mui/material/CircularProgress';
+
 
 const TAGS = ['Event', 'Buy & Sell', 'Awareness', 'Advertisement'];
 
@@ -39,6 +40,8 @@ const ResidentCommunity = () => {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showMyBlogs, setShowMyBlogs] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
 
   const token = localStorage.getItem('token');
   let decoded = token ? jwtDecode(token) : null;
@@ -101,65 +104,81 @@ const ResidentCommunity = () => {
   };
 
   const handleBlogSubmit = async () => {
-    if (!title.trim() || !content.trim() || selectedTags.length === 0) {
-      showToast('Please enter title, content, and select at least one tag.', 'error');
-      return;
+  if (!title.trim() || !content.trim() || selectedTags.length === 0) {
+    showToast('Please enter title, content, and select at least one tag.', 'error');
+    return;
+  }
+
+  setSubmitting(true);
+  try {
+    let response;
+
+    if (isEditing && selectedBlog) {
+      response = await axios.put(
+        `${import.meta.env.VITE_BACKEND_URL}/blogs/update-blog/${selectedBlog.post_id || selectedBlog.id}`,
+        { title, content, tags: selectedTags }
+      );
+    } else {
+      const newBlog = {
+        title,
+        content,
+        tags: selectedTags,
+        author: decoded?.id || 'Anonymous',
+        society_id: decoded?.society_code
+      };
+
+      response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/blogs/add-blog`, {
+        blog: newBlog
+      });
     }
 
-    try {
-      let response;
-
-      if (isEditing && selectedBlog) {
-        response = await axios.put(
-          `${import.meta.env.VITE_BACKEND_URL}/blogs/update-blog/${selectedBlog.post_id || selectedBlog.id}`,
-          { title, content, tags: selectedTags }
-        );
-      } else {
-        const newBlog = {
+    if (response.data.success) {
+      showToast(isEditing ? 'Blog updated successfully!' : 'Blog posted!');
+      resetForm();
+        const postedBlog = {
+          ...(response.data.blog || {}),
           title,
           content,
           tags: selectedTags,
-          author: decoded?.id || 'Anonymous',
-          society_id: decoded?.society_code
+          editable: true,
+          author_name: decoded?.name || 'You',
+          post_date: new Date().toISOString()
         };
 
-        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/blogs/add-blog`, {
-          blog: newBlog
-        });
-      }
+        setBlogs(prev => [postedBlog, ...prev]);
 
-      if (response.data.success) {
-        showToast(isEditing ? 'Blog updated successfully!' : 'Blog posted!');
-        resetForm();
-        const refreshResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/all-blogs`, {
-          params: { society_id: decoded?.society_code }
-        });
+      const refreshResponse = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/all-blogs`, {
+        params: { society_id: decoded?.society_code }
+      });
 
-        const refreshedBlogs = await Promise.all(
-          refreshResponse.data.map(async (blog) => {
-            let authorName = 'Community Member';
-            if (blog.author_id) {
-              try {
-                const authorRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/author-name/${blog.author_id}`);
-                authorName = authorRes.data?.author_name || 'Unknown';
-              } catch {
-                authorName = 'Unknown';
-              }
+      const refreshedBlogs = await Promise.all(
+        refreshResponse.data.map(async (blog) => {
+          let authorName = 'Community Member';
+          if (blog.author_id) {
+            try {
+              const authorRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/author-name/${blog.author_id}`);
+              authorName = authorRes.data?.author_name || 'Unknown';
+            } catch {
+              authorName = 'Unknown';
             }
-            return { ...blog, editable: decoded?.id === blog.author_id, author_name: authorName };
-          })
-        );
+          }
+          return { ...blog, editable: decoded?.id === blog.author_id, author_name: authorName };
+        })
+      );
 
-        setBlogs(refreshedBlogs || []);
-      } else {
-        setError(response.data.error || 'Failed to submit blog');
-      }
-    } catch (error) {
-      console.error('Error submitting blog:', error);
-      const message = error?.response?.data?.message || error?.response?.data?.error || 'Failed to submit blog.';
-      showToast(message, 'error');
+      setBlogs(refreshedBlogs || []);
+    } else {
+      setError(response.data.error || 'Failed to submit blog');
     }
-  };
+  } catch (error) {
+    console.error('Error submitting blog:', error);
+    const message = error?.response?.data?.message || error?.response?.data?.error || 'Failed to submit blog.';
+    showToast(message, 'error');
+  } finally {
+    setSubmitting(false);
+  }
+};
+
 
   const resetForm = () => {
     setTitle('');
@@ -173,7 +192,7 @@ const ResidentCommunity = () => {
   const filteredBlogs = showMyBlogs ? blogs.filter(blog => blog.editable) : blogs;
 
   if (loading) {
-    return <div className="p-4 text-center text-lg">Loading blogs...</div>;
+    return <LoadingSpinner/>
   }
 
   return (
@@ -182,19 +201,23 @@ const ResidentCommunity = () => {
 
       {!showForm && !selectedBlog && (
         <div>
-          <div className="flex gap-2 mb-4">
-            <button
-              className="px-4 py-2 font-medium bg-blue-500 text-white hover:bg-blue-400 transition"
-              onClick={() => setShowForm(true)}
-            >
-              Write Blog
-            </button>
+          <div className="flex justify-between items-center mb-4">
+          <div>
             <button
               className="px-4 py-2 font-medium border hover:bg-gray-100"
               onClick={() => setShowMyBlogs(prev => !prev)}
             >
               {showMyBlogs ? 'View All Blogs' : 'My Blogs'}
             </button>
+          </div>
+          <div>
+            <button
+              className="px-4 py-2 font-medium bg-teal-500 text-white hover:bg-teal-400 transition"
+              onClick={() => setShowForm(true)}
+            >
+              Write Blog
+            </button>
+          </div>
           </div>
 
           {/* List of Blogs */}
@@ -224,7 +247,7 @@ const ResidentCommunity = () => {
         </div>
       )}
 
-      {/* {(showForm || isEditing) && (
+      {(showForm || isEditing) && (
         <div className="space-y-4 bg-white p-3 border rounded-lg shadow-md">
           <div className="text-lg font-semibold">
             {isEditing ? 'Edit Blog Post' : 'Create New Blog Post'}
@@ -263,17 +286,18 @@ const ResidentCommunity = () => {
           </div>
 
           <div className="flex justify-end gap-2">
-            <button
-              onClick={handleBlogSubmit}
-              disabled={!title.trim() || !content.trim() || selectedTags.length === 0}
-              className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white transition"
-            >
-              {isEditing ? 'Update' : 'Submit'}
-            </button>
+          <button
+            onClick={handleBlogSubmit}
+            disabled={submitting || !title.trim() || !content.trim() || selectedTags.length === 0}
+            className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white transition flex items-center justify-center gap-2"
+          >
+            {submitting ? <CircularProgress size={20} color="inherit" /> : (isEditing ? 'Update' : 'Submit')}
+          </button>
+
             <button onClick={resetForm} className="px-4 py-2 bg-gray-500 text-white">Cancel</button>
           </div>
         </div>
-      )} */}
+      )}
 
       {/* viewing a blog */}
       {selectedBlog && !isEditing && (

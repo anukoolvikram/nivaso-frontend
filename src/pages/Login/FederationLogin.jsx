@@ -1,25 +1,59 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { HiEye, HiEyeOff } from "react-icons/hi";
+import CircularProgress from "@mui/material/CircularProgress";
+
+// ✅ Moved outside to prevent re-creation on every render
+const InputField = ({
+  label,
+  type = "text",
+  value,
+  onChange,
+  placeholder,
+  icon,
+  toggleIcon,
+}) => (
+  <div className="mb-4 relative">
+    <label className="block text-sm font-medium mb-1">{label}</label>
+    <div className="relative">
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-1 focus:ring-black pr-10"
+        required
+      />
+      {icon && (
+        <span
+          className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
+          onClick={toggleIcon}
+        >
+          {icon}
+        </span>
+      )}
+    </div>
+  </div>
+);
 
 const FederationLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [isFederation, setIsFederation] = useState(false);
+  const [isFederation, setIsFederation] = useState(true);
   const [numApartments, setNumApartments] = useState("");
   const [numTenements, setNumTenements] = useState("");
   const [fedName, setFedName] = useState("");
   const [isRegistered, setIsRegistered] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const navigate = useNavigate();
 
-  const toggleForm = () => {
-    setIsRegistered(!isRegistered);
+  const resetForm = () => {
     setEmail("");
     setPassword("");
     setConfirmPassword("");
@@ -27,6 +61,11 @@ const FederationLogin = () => {
     setNumApartments("");
     setNumTenements("");
     setErrorMessage("");
+  };
+
+  const toggleForm = () => {
+    setIsRegistered(!isRegistered);
+    resetForm();
   };
 
   const handleSubmit = async (e) => {
@@ -46,11 +85,15 @@ const FederationLogin = () => {
     };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      setLoading(true);
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/auth/federation/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await response.json();
       if (response.ok) {
@@ -66,19 +109,26 @@ const FederationLogin = () => {
     } catch (error) {
       console.error("Error:", error);
       setErrorMessage("Server error. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
     const payload = { email, password };
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      setLoading(true);
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/auth/federation/login`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const data = await response.json();
       if (response.ok) {
@@ -94,35 +144,13 @@ const FederationLogin = () => {
     } catch (error) {
       console.error("Error:", error);
       setErrorMessage("Server error. Please try again later.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const InputField = ({ label, type = "text", value, onChange, placeholder, icon, toggleIcon }) => (
-    <div className="mb-4 relative">
-      <label className="block text-sm font-medium mb-1">{label}</label>
-      <div className="relative">
-        <input
-          type={type}
-          value={value}
-          onChange={onChange}
-          placeholder={placeholder}
-          className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black pr-10"
-          required
-        />
-        {icon && (
-          <span
-            className="absolute right-3 top-2.5 text-gray-500 cursor-pointer"
-            onClick={toggleIcon}
-          >
-            {icon}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-
   return (
-    <div className="flex justify-center bg-gray-50">
+    <div className="flex justify-center bg-gray-50 items-center">
       <div className="w-full max-w-lg bg-white border border-gray-200 rounded-xl shadow-md p-6">
         <h2 className="text-2xl font-bold text-center text-gray-800 mb-6">
           Federation {isRegistered ? "Login" : "Registration"}
@@ -201,9 +229,14 @@ const FederationLogin = () => {
 
           <button
             type="submit"
-            className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition"
+            className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition flex justify-center items-center gap-2"
+            disabled={loading}
           >
-            {isRegistered ? "Login" : "Register"}
+            {loading ? (
+              <CircularProgress size={20} style={{ color: "white" }} />
+            ) : (
+              isRegistered ? "Login" : "Register"
+            )}
           </button>
 
           <div className="text-center mt-4">
@@ -211,8 +244,11 @@ const FederationLogin = () => {
               type="button"
               onClick={toggleForm}
               className="text-blue-600 hover:underline text-sm"
+              disabled={loading}
             >
-              {isRegistered ? "Don't have an account? Register" : "Already registered? Login"}
+              {isRegistered
+                ? "Don't have an account? Register"
+                : "Already registered? Login"}
             </button>
           </div>
         </form>

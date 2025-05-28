@@ -4,6 +4,8 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import { useToast } from '../../context/ToastContext'; 
+import LoadingSpinner from '../LoadingSpinner.jsx';
+import { CircularProgress } from '@mui/material';
 
 const TAGS = ['Event', 'Buy & Sell', 'Awareness', 'Advertisement'];
 
@@ -24,7 +26,6 @@ const getTimeAgo = (dateString) => {
   return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
 };
 
-
 const SocietyCommunity = () => {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
@@ -39,6 +40,8 @@ const SocietyCommunity = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [blogToDelete, setBlogToDelete] = useState(null);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const showToast = useToast();
 
   const token = localStorage.getItem('token');
@@ -51,9 +54,7 @@ const SocietyCommunity = () => {
         const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/all-blogs`, {
           params: { society_id: decoded?.society_code }
         });
-
         const blogs = response.data || [];
-
         const blogsWithAuthors = await Promise.all(
           blogs.map(async (blog) => {
             let authorName = 'Community Member';
@@ -68,23 +69,19 @@ const SocietyCommunity = () => {
             return { ...blog, editable: blog.by_admin === true, author_name: authorName };
           })
         );
-
         setBlogs(blogsWithAuthors);
         setError(null);
       } catch (error) {
         console.error('Error fetching blogs:', error);
         setError('Failed to load blogs. Please try again.');
         showToast('Failed to load blogs. Please try again.', 'error');
-
         setBlogs([]);
       } finally {
         setLoading(false);
       }
     };
 
-    if (decoded?.society_code) {
-      fetchBlogs();
-    }
+    if (decoded?.society_code) fetchBlogs();
   }, [decoded?.society_code]);
 
   const toggleTag = (tag) => {
@@ -107,14 +104,13 @@ const SocietyCommunity = () => {
       showToast('Please enter title, content, and select at least one tag.', 'error');
       return;
     }
-    
 
+    setSubmitLoading(true);
     try {
       let response;
-
       if (isEditing && selectedBlog) {
         response = await axios.put(
-          `http://localhost:5000/blogs/update-blog/${selectedBlog.post_id || selectedBlog.id}`,
+          `${import.meta.env.VITE_BACKEND_URL}/blogs/update-blog/${selectedBlog.post_id || selectedBlog.id}`,
           { title, content, tags: selectedTags }
         );
       } else {
@@ -122,13 +118,9 @@ const SocietyCommunity = () => {
           title,
           content,
           tags: selectedTags,
-          author: decoded?.id || null,
           society_id: decoded?.society_code
         };
-
-        response = await axios.post('http://localhost:5000/blogs/add-admin-blog', {
-          blog: newBlog
-        });
+        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/blogs/add-admin-blog`, { blog: newBlog });
       }
 
       if (response.data.success) {
@@ -142,35 +134,24 @@ const SocietyCommunity = () => {
             editable: true,
             author_name: selectedBlog.author_name || decoded?.name || "Community Member",
           };
-        
-          setBlogs(prevBlogs =>
-            prevBlogs.map(blog =>
-              blog.id === selectedBlog.id || blog.post_id === selectedBlog.id
-                ? updated
-                : blog
-            )
-          );
-        
-          setSelectedBlog(updated);  // Ensure the UI shows correct blog
-        }
-        
-         else {
-          setBlogs(prevBlogs => [
+          setBlogs(prev => prev.map(blog => blog.id === selectedBlog.id || blog.post_id === selectedBlog.id ? updated : blog));
+          setSelectedBlog(updated);
+        } else {
+          setBlogs(prev => [
             {
               id: updatedBlog.id || updatedBlog.post_id,
               title: title.trim(),
               content: content.trim(),
               tags: selectedTags,
               editable: true,
-              author_name: decoded?.name || "Admin"
+              author_name: decoded?.name || "Admin",
+              post_date: updatedBlog.post_date || new Date().toISOString(),
             },
-            ...prevBlogs
+            ...prev
           ]);
         }
-
         resetForm();
         showToast(isEditing ? "Blog updated successfully!" : "Blog posted!");
-
       } else {
         setError(response.data.error || 'Failed to submit blog');
       }
@@ -178,8 +159,9 @@ const SocietyCommunity = () => {
       console.error('Error submitting blog:', error);
       const message = error?.response?.data?.message || error?.response?.data?.error || 'Failed to submit blog.';
       showToast(message, 'error');
+    } finally {
+      setSubmitLoading(false);
     }
-    
   };
 
   const resetForm = () => {
@@ -199,20 +181,18 @@ const SocietyCommunity = () => {
 
   const handleDeleteConfirm = async () => {
     if (!blogToDelete) return;
-
+    setDeleteLoading(true);
     try {
       const response = await axios.delete(
-        `http://localhost:5000/blogs/delete-blog/${blogToDelete}`,
+        `${import.meta.env.VITE_BACKEND_URL}/blogs/delete-blog/${blogToDelete}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (response.data.success) {
         setBlogs(prev => prev.filter(blog => blog.id !== blogToDelete));
         showToast("Blog deleted successfully!");
         if (selectedBlog && (selectedBlog.id === blogToDelete || selectedBlog.post_id === blogToDelete)) {
           setSelectedBlog(null);
         }
-
       } else {
         setError(response.data.error || 'Failed to delete blog');
       }
@@ -220,16 +200,12 @@ const SocietyCommunity = () => {
       console.error('Error deleting blog:', error);
       const message = error?.response?.data?.message || error?.response?.data?.error || 'Failed to delete blog';
       showToast(message, 'error');
-    }
-    finally {
+    } finally {
       setShowDeleteDialog(false);
       setBlogToDelete(null);
+      setDeleteLoading(false);
     }
   };
-
-  if (loading) {
-    return <div className="p-4 text-center text-lg">Loading blogs...</div>;
-  }
 
   return (
     <div className="w-full">
@@ -237,14 +213,18 @@ const SocietyCommunity = () => {
 
       {!showForm && !selectedBlog && (
         <div>
-          <button
-            className="mb-4 px-4 py-2 font-medium bg-blue-500 text-white hover:bg-blue-400 transition"
-            onClick={() => setShowForm(true)}
-          >
-            Write Blog
-          </button>
+          <div className='flex justify-end'>
+            <button
+              className="mb-4 px-4 py-2 font-medium bg-teal-500 text-white hover:bg-teal-400 transition"
+              onClick={() => setShowForm(true)}
+            >
+              Write Blog
+            </button>
+          </div>
 
-          {blogs.length === 0 ? (
+          {loading ? (
+            <LoadingSpinner />
+          ) : blogs.length === 0 ? (
             <div className="text-center text-gray-500">No blogs yet. Write your first blog!</div>
           ) : (
             <ul className="p-0 space-y-4">
@@ -329,16 +309,21 @@ const SocietyCommunity = () => {
             <button
               onClick={handleBlogSubmit}
               disabled={
-                !title.trim() || !content.trim() || selectedTags.length === 0 || (isEditing && !confirmUpdate)
+                submitLoading || !title.trim() || !content.trim() || selectedTags.length === 0 || (isEditing && !confirmUpdate)
               }
-              className={`px-4 py-2 ${
+              className={`px-4 py-2 flex items-center gap-2 ${
                 isEditing && !confirmUpdate
                   ? 'bg-teal-300 cursor-not-allowed'
                   : 'bg-teal-500 hover:bg-teal-400'
               } text-white transition`}
             >
-              {isEditing ? 'Update' : 'Submit'}
+              {submitLoading ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                isEditing ? 'Update' : 'Submit'
+              )}
             </button>
+
             <button onClick={resetForm} className="px-4 py-2 bg-gray-500 text-white">Cancel</button>
           </div>
         </div>
@@ -363,7 +348,7 @@ const SocietyCommunity = () => {
             </div>
           </div>
 
-          <div className="text-sm text-gray-500 mb-4 -mt-2">
+          <div className="text-sm text-gray-500 mb-4">
             Posted on {new Date(selectedBlog.post_date).toLocaleString('en-IN', {
               weekday: 'short',
               year: 'numeric',
@@ -419,10 +404,16 @@ const SocietyCommunity = () => {
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="px-4 py-2 bg-red-600 text-white hover:bg-red-500"
+                className="px-4 py-2 bg-red-600 text-white hover:bg-red-500 flex items-center justify-center gap-2"
+                disabled={deleteLoading}
               >
-                Delete
+                {deleteLoading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  'Delete'
+                )}
               </button>
+
             </div>
           </div>
         </div>

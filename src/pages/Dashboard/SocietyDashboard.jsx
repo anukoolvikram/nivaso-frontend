@@ -10,15 +10,15 @@ import SocietyDocuments from '../../components/SocietyDashboard/SocietyDocuments
 const SocietyDashboard = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(() => {
-    // Initialize state from localStorage or default to "Noticeboard"
     return localStorage.getItem('currentDashboardPage') || "Noticeboard";
   });
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('token');
-    const isResident = localStorage.getItem('user_type') === 'society';
+    const isSociety = localStorage.getItem('user_type') === 'society' || localStorage.getItem('user_type')==='Society';
     
-    if (!isLoggedIn || !isResident) {
+    if (!isLoggedIn || !isSociety) {
+      console.log('fasllllse')
       navigate('/login');
     }
   }, [navigate]);

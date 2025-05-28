@@ -1,9 +1,11 @@
-// Add these imports
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import { useToast } from '../../context/ToastContext'; 
+import LoadingSpinner from '../../components/LoadingSpinner';
+import CircularProgress from '@mui/material/CircularProgress';
+
 
 const getTimeAgo = (dateString) => {
   const now = new Date();
@@ -36,6 +38,8 @@ const ResidentNoticeboard = () => {
   const [isWriting, setIsWriting] = useState(false);
   const [formData, setFormData] = useState({ title: '', description: '', type: '' });
   const [formError, setFormError] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const [userId, setUserId] = useState(null);
   const [societyCode, setSocietyCode] = useState(null);
@@ -47,8 +51,10 @@ const ResidentNoticeboard = () => {
       const decoded = jwtDecode(token);
       setUserId(decoded.id);
       setSocietyCode(decoded.society_code);
-      fetchNotices(decoded.society_code);
-      fetchUserNotices(decoded.id);
+      Promise.all([
+        fetchNotices(decoded.society_code),
+        fetchUserNotices(decoded.id)
+      ]).finally(() => setLoading(false));
     }
   }, []);
 
@@ -142,6 +148,7 @@ const ResidentNoticeboard = () => {
       return;
     }
 
+    setSubmitting(true);
     try {
       const res = await axios.post('http://localhost:5000/notices/post-user-notice', {
         ...formData,
@@ -160,11 +167,15 @@ const ResidentNoticeboard = () => {
     } catch (err) {
       console.error('Error posting notice:', err);
       showToast("Server error. Please try again later.", "error");
+    } finally {
+      setSubmitting(false);
     }
-  };
+    };
 
 
   const displayedNotices = showingUserNotices ? userNotices : notices;
+
+  if (loading) return <LoadingSpinner />;
 
   return (
     <div className="w-full mx-auto">
@@ -176,30 +187,35 @@ const ResidentNoticeboard = () => {
         )}
 
         {!viewingNotice && !isWriting && (
-          <>
-            {!showingUserNotices && (
-              <button
-                onClick={handleWrite}
-                className="inline-flex items-center bg-blue-500 hover:bg-blue-400 text-white font-medium px-4 py-2 rounded-md shadow-sm transition"
-              >
-                Write Notice
-              </button>
-            )}
+          <div className="flex justify-between w-full mb-4 items-center">
+            <div>
+              {!showingUserNotices ? (
+                <button
+                  onClick={() => setShowingUserNotices(true)}
+                  className="px-4 py-2 font-medium border hover:bg-gray-100"
+                >
+                  My Notices
+                </button>
+              ) : (
+                <button onClick={handleBack} className="text-gray-700 hover:text-black transition">
+                  <ArrowLeftIcon className="h-6 w-6" />
+                </button>
+              )}
+            </div>
 
-            {!showingUserNotices ? (
-              <button
-                onClick={() => setShowingUserNotices(true)}
-                className="px-4 py-2 font-medium border hover:bg-gray-100"
-              >
-                My Notices
-              </button>
-            ) : (
-              <button onClick={handleBack} className="text-gray-700 hover:text-black transition">
-                <ArrowLeftIcon className="h-6 w-6" />
-              </button>
+            {!showingUserNotices && (
+              <div className="ml-auto">
+                <button
+                  onClick={handleWrite}
+                  className="inline-flex items-center bg-teal-500 hover:bg-teal-400 text-white font-medium px-4 py-2 shadow-sm transition"
+                >
+                  Write Notice
+                </button>
+              </div>
             )}
-          </>
+          </div>
         )}
+
       </div>
 
       {/* Write Form */}
@@ -257,10 +273,19 @@ const ResidentNoticeboard = () => {
             </button>
             <button
               type="submit"
-              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-md transition"
+              disabled={submitting}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-md transition inline-flex items-center gap-2"
             >
-              Submit
+              {submitting ? (
+                <>
+                  <CircularProgress size={20} color="inherit" />
+                  Submitting...
+                </>
+              ) : (
+                "Submit"
+              )}
             </button>
+
           </div>
         </form>
       )}

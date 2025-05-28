@@ -3,6 +3,7 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import { useToast } from '../../context/ToastContext';
+import LoadingSpinner from '../LoadingSpinner';
 
 const getTimeAgo = (dateString) => {
   const now = new Date();
@@ -33,12 +34,13 @@ const FederationNoticeboard = () => {
     title: '',
     description: '',
     federation_id: '',
-    type: 'announcement'
+    type: 'announcement',
   });
   const [viewingNotice, setViewingNotice] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(false);
   const [confirmUpdate, setConfirmUpdate] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const showToast = useToast();
 
@@ -46,6 +48,7 @@ const FederationNoticeboard = () => {
     const token = localStorage.getItem('token');
     if (token) {
       const decoded = jwtDecode(token);
+      // console.log(decoded)
       setFormData((prev) => ({ ...prev, federation_id: decoded.id }));
       fetchNotices(decoded.id);
     }
@@ -53,11 +56,14 @@ const FederationNoticeboard = () => {
 
   const fetchNotices = async (federation_id) => {
     try {
+      setIsLoading(true);
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/federation-notice/get/${federation_id}`);
       setNotices(res.data);
     } catch (err) {
       console.error('Error fetching notices:', err);
       showToast('Failed to load notices', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -78,11 +84,13 @@ const FederationNoticeboard = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      setIsLoading(true);
       if (editing) {
-        await axios.put(`${import.meta.env.VITE_BACKEND_URL}/notices/federation-notice/edit/${formData.id}`, formData);
+        await axios.put(`${import.meta.env.VITE_BACKEND_URL}/notices/federation-notice/update/${formData.id}`, formData);
         showToast('Notice updated!');
       } else {
-        await axios.post(`${import.meta.env.VITE_BACKEND_URL}/federation-notice/post`, formData);
+        // console.log(formData)
+        await axios.post(`${import.meta.env.VITE_BACKEND_URL}/notices/federation-notice/post`, formData);
         showToast('Notice posted!');
       }
       fetchNotices(formData.federation_id);
@@ -91,6 +99,8 @@ const FederationNoticeboard = () => {
     } catch (err) {
       console.error(err);
       showToast('Failed to submit notice', 'error');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -117,19 +127,21 @@ const FederationNoticeboard = () => {
         )}
 
         {!viewingNotice && !showForm && (
+        <div className="w-full flex justify-end">
           <button
             onClick={() => {
               setShowForm(true);
               setEditing(false);
             }}
-            className="inline-flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white font-medium px-4 py-2 rounded-md shadow-sm transition"
+            className="inline-flex items-end gap-2 bg-teal-500 hover:bg-teal-400 text-white font-medium px-4 py-2 shadow-sm transition"
           >
             Write Notice
           </button>
+        </div>
+
         )}
       </div>
 
-      {/* Write Form */}
       {showForm && (
         <form
           onSubmit={handleSubmit}
@@ -207,22 +219,52 @@ const FederationNoticeboard = () => {
             </button>
             <button
               type="submit"
-              disabled={editing && !confirmUpdate}
-              className={`bg-teal-600 text-white font-medium px-5 py-2 rounded-md shadow-sm transition ${
+              disabled={(editing && !confirmUpdate) || isLoading}
+              className={`flex items-center justify-center gap-2 bg-teal-600 text-white font-medium px-5 py-2 rounded-md shadow-sm transition ${
                 editing && !confirmUpdate ? 'opacity-50 cursor-not-allowed' : 'hover:bg-teal-700'
               }`}
             >
-              {editing ? 'Update Notice' : 'Post Notice'}
+              {isLoading ? (
+                <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+              ) : editing ? 'Update Notice' : 'Post Notice'}
             </button>
           </div>
         </form>
       )}
 
-      {!viewingNotice && !showForm && notices.length === 0 && (
-        <div className="text-gray-500">No Notices to display.</div>
+      {!viewingNotice && !showForm && (
+        <>
+          {isLoading ? (
+           <LoadingSpinner/>
+          ) : notices.length === 0 ? (
+            <div className="text-gray-500">No Notices to display.</div>
+          ) : (
+            <div className="space-y-4">
+              {notices.map((notice) => (
+                <div
+                  key={notice.id}
+                  onClick={() => handleView(notice)}
+                  className="border p-4 rounded shadow hover:shadow-md hover:bg-gray-100 cursor-pointer"
+                >
+                  <div className="flex justify-between mb-2">
+                    <div className="text-lg font-semibold text-gray-800">{notice.title}</div>
+                    <div className="flex flex-wrap gap-2">
+                      <span className="p-2 bg-blue-100 text-blue-800 rounded text-xs">
+                        {noticeTypes.find((t) => t.value === notice.type)?.label || notice.type}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-sm text-gray-500 italic">{getTimeAgo(notice.date_posted)}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
 
-      {/* View Notice */}
       {viewingNotice && (
         <div className="bg-white border border-gray-200 p-4 rounded shadow-md">
           <div className="flex justify-between mb-2">
@@ -247,29 +289,6 @@ const FederationNoticeboard = () => {
               Edit Notice
             </button>
           </div>
-        </div>
-      )}
-
-      {/* Notice List */}
-      {!viewingNotice && !showForm && (
-        <div className="space-y-4">
-          {notices.map((notice) => (
-            <div
-              key={notice.id}
-              onClick={() => handleView(notice)}
-              className="border p-4 rounded shadow hover:shadow-md hover:bg-gray-100 cursor-pointer"
-            >
-              <div className="flex justify-between mb-2">
-                <div className="text-lg font-semibold text-gray-800">{notice.title}</div>
-                <div className="flex flex-wrap gap-2">
-                  <span className="p-2 bg-blue-100 text-blue-800 rounded text-xs">
-                    {noticeTypes.find((t) => t.value === notice.type)?.label || notice.type}
-                  </span>
-                </div>
-              </div>
-              <div className="text-sm text-gray-500 italic">{getTimeAgo(notice.date_posted)}</div>
-            </div>
-          ))}
         </div>
       )}
     </div>
