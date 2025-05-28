@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { HiEye, HiEyeOff } from "react-icons/hi";
 import CircularProgress from "@mui/material/CircularProgress";
 
-// ✅ Reusable input field to avoid re-creation
 const InputField = ({ label, name, type = "text", value, onChange, isPassword = false, showPassword, togglePassword }) => (
   <div className="mb-4 relative">
     <label className="block text-sm font-medium mb-1">{label}</label>
@@ -39,6 +38,7 @@ const SocietyLogin = () => {
     noOfWings: "",
     floorPerWing: "",
     roomsPerFloor: "",
+    societyType: "Apartment", // default value
   });
 
   const [loginEmail, setLoginEmail] = useState("");
@@ -46,6 +46,7 @@ const SocietyLogin = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [isRegistered, setIsRegistered] = useState(true);
+  const [hasSocietyCode, setHasSocietyCode] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -67,18 +68,34 @@ const SocietyLogin = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/register`, {
+      const apiEndpoint = hasSocietyCode
+        ? `${import.meta.env.VITE_BACKEND_URL}/auth/society/register`
+        : `${import.meta.env.VITE_BACKEND_URL}/auth/society/self-register`;
+
+      const body = hasSocietyCode
+        ? {
+            email: formData.email,
+            password: formData.password,
+            society_code: formData.societyCode,
+            society_name: formData.societyName,
+            no_of_wings: formData.noOfWings,
+            floor_per_wing: formData.floorPerWing,
+            rooms_per_floor: formData.roomsPerFloor,
+          }
+        : {
+            email: formData.email,
+            password: formData.password,
+            society_name: formData.societyName,
+            no_of_wings: formData.noOfWings,
+            floor_per_wing: formData.floorPerWing,
+            rooms_per_floor: formData.roomsPerFloor,
+            society_type: formData.societyType, 
+          };
+
+      const response = await fetch(apiEndpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          society_code: formData.societyCode,
-          society_name: formData.societyName,
-          no_of_wings: formData.noOfWings,
-          floor_per_wing: formData.floorPerWing,
-          rooms_per_floor: formData.roomsPerFloor,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
@@ -86,12 +103,10 @@ const SocietyLogin = () => {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user_type", data.user_type);
-      localStorage.setItem("society_code", formData.societyCode);
-
-      console.log('navigating to dashboard');
+      localStorage.setItem("society_code", data.society_code);
 
       navigate("/society/dashboard", {
-        state: { society_code: formData.societyCode },
+        state: { society_code: data.society_code },
       });
     } catch (error) {
       console.error("Registration Error:", error);
@@ -191,56 +206,87 @@ const SocietyLogin = () => {
             </div>
           </form>
         ) : (
-          <form onSubmit={handleRegister}>
-            {[
-              { label: "Federation Code", name: "federationCode" },
-              { label: "Society Code", name: "societyCode" },
-              { label: "Society Name", name: "societyName" },
-              { label: "Email", name: "email", type: "email" },
-              {
-                label: "Password",
-                name: "password",
-                isPassword: true,
-                showPassword: showRegisterPassword,
-                togglePassword: () => setShowRegisterPassword(!showRegisterPassword),
-              },
-              { label: "No of Wings", name: "noOfWings", type: "number" },
-              { label: "Floor per Wing", name: "floorPerWing", type: "number" },
-              { label: "Rooms per Floor", name: "roomsPerFloor", type: "number" },
-            ].map((field) => (
-              <InputField
-                key={field.name}
-                {...field}
-                value={formData[field.name]}
-                onChange={handleChange}
-              />
-            ))}
+          <>
+            <div className="mb-4 text-sm">
+              <label className="mr-4 font-medium">Do you already have a society code?</label>
+              <label className="mr-4">
+                <input
+                  type="radio"
+                  name="hasSocietyCode"
+                  checked={hasSocietyCode}
+                  onChange={() => setHasSocietyCode(true)}
+                /> Yes
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name="hasSocietyCode"
+                  checked={!hasSocietyCode}
+                  onChange={() => setHasSocietyCode(false)}
+                /> No
+              </label>
+            </div>
 
-            {errorMessage && (
-              <div className="mb-4 text-sm text-red-700 bg-red-100 px-4 py-2 rounded border border-red-300">
-                {errorMessage}
-              </div>
-            )}
+            <form onSubmit={handleRegister}>
+              {hasSocietyCode && (
+                <InputField label="Society Code" name="societyCode" value={formData.societyCode} onChange={handleChange} />
+              )}
+              {["societyName", "email", "password", "noOfWings", "floorPerWing", "roomsPerFloor"].map((field) => (
+                <InputField
+                  key={field}
+                  label={field.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}
+                  name={field}
+                  type={field.includes("password") ? "password" : field.includes("email") ? "email" : "text"}
+                  isPassword={field === "password"}
+                  showPassword={field === "password" ? showRegisterPassword : undefined}
+                  togglePassword={field === "password" ? () => setShowRegisterPassword(!showRegisterPassword) : undefined}
+                  value={formData[field]}
+                  onChange={handleChange}
+                />
+              ))}
 
-            <button
-              type="submit"
-              className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition flex justify-center items-center gap-2"
-              disabled={loading}
-            >
-              {loading ? <CircularProgress size={20} style={{ color: "white" }} /> : "Register"}
-            </button>
+              {!hasSocietyCode && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">Society Type</label>
+                  <select
+                    name="societyType"
+                    value={formData.societyType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                    required
+                  >
+                    <option value="Apartment">Apartment</option>
+                    <option value="Tenement">Tenement</option>
+                  </select>
+                </div>
+              )}
 
-            <div className="text-center mt-4">
+              {errorMessage && (
+                <div className="mb-4 text-sm text-red-700 bg-red-100 px-4 py-2 rounded border border-red-300">
+                  {errorMessage}
+                </div>
+              )}
+
               <button
-                type="button"
-                onClick={toggleForm}
-                className="text-blue-600 hover:underline text-sm"
+                type="submit"
+                className="w-full mt-2 bg-black text-white py-2 rounded-lg hover:bg-gray-900 transition flex justify-center items-center gap-2"
                 disabled={loading}
               >
-                Already have an account? Login
+                {loading ? <CircularProgress size={20} style={{ color: "white" }} /> : "Register"}
               </button>
-            </div>
-          </form>
+
+              <div className="text-center mt-4">
+                <button
+                  type="button"
+                  onClick={toggleForm}
+                  className="text-blue-600 hover:underline text-sm"
+                  disabled={loading}
+                >
+                  Already have an account? Login
+                </button>
+              </div>
+            </form>
+          </>
         )}
       </div>
     </div>
