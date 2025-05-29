@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import LoadingSpinner from '../LoadingSpinner';
+import CircularProgress from '@mui/material/CircularProgress';
+import LoadingSpinner from '../LoadingSpinner.jsx'
 
 const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
   const [federationCode, setFederationCode] = useState(
@@ -111,7 +112,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
           className="flex items-center gap-2 bg-teal-500 hover:bg-teal-400 text-white text-sm font-medium px-4 py-2 mb-2 shadow-sm"
           disabled={loading}
         >
-          {loading ? <Spinner size={20} /> : '+ Add Society'}
+          {loading ? <CircularProgress size={20} color="inherit" /> : '+ Add Society'}
         </button>
       </div>
 
@@ -143,7 +144,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
                         className="bg-blue-500 hover:bg-blue-400 text-white px-3 py-1 rounded-md text-sm flex items-center gap-2"
                         disabled={loading}
                       >
-                        {loading ? <Spinner size={16} /> : 'Edit'}
+                        {loading ? <CircularProgress size={16} color="inherit" /> : 'Edit'}
                       </button>
                     </td>
                   </tr>
@@ -233,7 +234,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                {loading ? <Spinner size={20} /> : 'Save'}
+                {loading ? <CircularProgress size={20} color="inherit" /> : 'Save'}
               </button>
             </div>
           </div>

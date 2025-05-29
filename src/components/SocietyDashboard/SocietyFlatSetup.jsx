@@ -37,14 +37,16 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
             const data = await response.json();
             
             const sortedFlats = data.sort((a, b) => {
-                const numA = parseInt(a.flat_id.replace(/\D/g, ''), 10) || 0;
-                const numB = parseInt(b.flat_id.replace(/\D/g, ''), 10) || 0;
-                
-                if (numA === numB) {
-                    return a.flat_id.localeCompare(b.flat_id);
-                }
+              const [blockA, numA] = [a.flat_id[0], parseInt(a.flat_id.slice(1), 10)];
+              const [blockB, numB] = [b.flat_id[0], parseInt(b.flat_id.slice(1), 10)];
+
+              if (blockA === blockB) {
                 return numA - numB;
+              }
+              return blockA.localeCompare(blockB);
             });
+
+
             
             setFlats(sortedFlats);
         } catch (error) {
@@ -133,7 +135,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
       
           if (!response.ok) {
               if (data?.error) {
-                  setServerError(data.error); // Show specific backend error
+                  setServerError(data.error);
               } else {
                   setServerError("An error occurred while saving.");
               }
