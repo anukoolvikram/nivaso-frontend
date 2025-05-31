@@ -272,20 +272,6 @@ export default function SocietyNoticeboard() {
             />
           </div>
           <div className="space-y-1">
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-              Description <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Write the full notice content here..."
-              className="w-full border rounded px-4 py-2 h-32 resize-none text-sm focus:ring-2 focus:ring-indigo-500"
-              required
-            />
-          </div>
-          <div className="space-y-1">
             <label htmlFor="type" className="block text-sm font-medium text-gray-700">
               Notice Type
             </label>
@@ -303,6 +289,21 @@ export default function SocietyNoticeboard() {
               ))}
             </select>
           </div>
+          <div className="space-y-1">
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              Description <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Write the full notice content here..."
+              className="w-full border rounded px-4 py-2 h-32 resize-none text-sm focus:ring-2 focus:ring-indigo-500"
+              required
+            />
+          </div>
+          
           {editing && (
             <div className="flex items-center space-x-2">
               <input

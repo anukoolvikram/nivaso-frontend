@@ -25,8 +25,8 @@ const getTimeAgo = (dateString) => {
 };
 
 const noticeTypes = [
-  { value: 'announcement', label: '📢 Announcement' },
-  { value: 'notice', label: '📄 Notice' },
+  // { value: 'announcement', label: '📢 Announcement' },
+  // { value: 'notice', label: '📄 Notice' },
   { value: 'lost_and_found', label: '🧩 Lost & Found' }
 ];
 
@@ -72,7 +72,7 @@ const ResidentNoticeboard = () => {
         approvedNotices.map(async (notice) => {
           if (notice.user_id) {
             try {
-              const userRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/user-name/${notice.user_id}`);
+              const userRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/user-name/${notice.user_id}`);
               const { author_name, flat_id } = userRes.data;
               return { ...notice, author_name, flat_id };
             } catch {
@@ -100,7 +100,7 @@ const ResidentNoticeboard = () => {
       const enrichedUserNotices = await Promise.all(
         res.data.map(async (notice) => {
           try {
-            const userRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/user-name/${notice.user_id}`);
+            const userRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/user-name/${notice.user_id}`);
             const { author_name, flat_id } = userRes.data;
             return { ...notice, author_name, flat_id };
           } catch {
@@ -235,18 +235,7 @@ const ResidentNoticeboard = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleFormChange}
-              placeholder="Write the full notice here"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 mt-1 h-32 text-sm resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-          </div>
-
-          <div>
+           <div>
             <label className="block text-sm font-medium text-gray-700">Type</label>
             <select
               name="type"
@@ -261,6 +250,17 @@ const ResidentNoticeboard = () => {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Description</label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleFormChange}
+              placeholder="Write the full notice here"
+              className="w-full border border-gray-300 rounded-md px-4 py-2 mt-1 h-32 text-sm resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            />
           </div>
 
           <div className="flex justify-end gap-3">
