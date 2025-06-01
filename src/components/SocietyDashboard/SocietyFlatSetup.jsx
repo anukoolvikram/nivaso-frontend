@@ -462,6 +462,69 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
 
             {/* Owner Fields */}
             <div className="mb-4 p-3 border rounded-md bg-gray-50">
+  <div className="font-semibold text-lg mb-3">Owner Details</div>
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    {["name", "email", "phone", "address"].map((field) => (
+      <div key={field}>
+        <label
+          className="block mb-1 text-sm text-gray-700 capitalize"
+          htmlFor={`owner-${field}`}
+        >
+          {field}
+        </label>
+
+        <input
+          id={`owner-${field}`}
+          name={field}
+          type={
+            field === "email"
+              ? "email"
+              : field === "phone"
+              ? "tel"
+              : "text"
+          }
+          // For phone, bring up numeric keypad & enforce digits only:
+          {...(field === "phone" && {
+            inputMode: "numeric",
+            pattern: "[0-9]*",
+          })}
+          value={editedData.owner?.[field] || ""}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (field === "phone") {
+              // strip out any non‐digits before updating state
+              const digitsOnly = val.replace(/\D/g, "");
+              handleOwnerChange(field, digitsOnly);
+            } else {
+              handleOwnerChange(field, val);
+            }
+          }}
+          className={`w-full border px-3 py-2 rounded-md ${
+            validationErrors[
+              `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
+            ]
+              ? "border-red-500"
+              : "border-gray-300"
+          }`}
+        />
+
+        {validationErrors[
+          `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
+        ] && (
+          <p className="text-red-500 text-sm mt-1">
+            {
+              validationErrors[
+                `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
+              ]
+            }
+          </p>
+        )}
+      </div>
+    ))}
+  </div>
+</div>
+
+            {/* <div className="mb-4 p-3 border rounded-md bg-gray-50">
               <div className="font-semibold text-lg mb-3">Owner Details</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {["name", "email", "phone", "address"].map((field) => (
@@ -479,7 +542,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
                   </div>
                 ))}
               </div>
-            </div>
+            </div> */}
 
             {/* Resident (If Rented) */}
             {editedData.occupancy === 'Rented' && (
