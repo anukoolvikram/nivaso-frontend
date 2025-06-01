@@ -88,6 +88,8 @@ const ResidentNoticeboard = () => {
 
   const fetchNotices = async (society_code) => {
     try {
+      // console.log('abc')
+      // console.log(society_code)
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/all-notices`, {
         params: { society_code }
       });

@@ -106,7 +106,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     setSaving(true);
     try {
       const { id, flat_id, occupancy, owner, resident } = editedData;
-      const endpoint = isNewFlat ? '/auth/society/createFlat' : '/auth/society/saveFlatsData';
+      const endpoint = isNewFlat ? `${import.meta.env.VITE_BACKEND_URL}/auth/society/createFlat` : `${import.meta.env.VITE_BACKEND_URL}/auth/society/saveFlatsData`;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
