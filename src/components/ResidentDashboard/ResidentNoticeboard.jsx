@@ -30,6 +30,16 @@ const noticeTypes = [
   { value: 'lost_and_found', label: '🧩 Lost & Found' }
 ];
 
+// maps every possible type → emoji+text for display.
+// (used when simply viewing a notice, NOT for the form dropdown)
+const typeLabels = {
+  announcement:   '📢 Announcement',
+  notice:         '📄 Notice',
+  poll:           '📊 Poll',
+  lost_and_found: '🧩 Lost & Found',
+};
+
+
 const ResidentNoticeboard = () => {
   const [notices, setNotices] = useState([]);
   const [userNotices, setUserNotices] = useState([]);
@@ -40,6 +50,10 @@ const ResidentNoticeboard = () => {
   const [formError, setFormError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // where you already have userId, societyCode, etc.
+  const [pollOptions, setPollOptions] = useState([]); 
+  const [voting, setVoting] = useState(false);
+
 
   const [userId, setUserId] = useState(null);
   const [societyCode, setSocietyCode] = useState(null);
@@ -57,6 +71,20 @@ const ResidentNoticeboard = () => {
       ]).finally(() => setLoading(false));
     }
   }, []);
+
+  useEffect(() => {
+    if (viewingNotice?.type === 'poll') {
+      axios
+        .get(
+          `${import.meta.env.VITE_BACKEND_URL}/notices/poll-options/${viewingNotice.notice_id}`
+        )
+        .then(res => {
+          setPollOptions(res.data); // e.g. [{ option_id, text, votes }, …]
+        })
+        .catch(() => showToast("Failed to load poll options", "error"));
+    }
+  }, [viewingNotice]);
+
 
   const fetchNotices = async (society_code) => {
     try {
@@ -171,6 +199,33 @@ const ResidentNoticeboard = () => {
       setSubmitting(false);
     }
     };
+
+    const handleVote = async (optionId) => {
+      if (!userId) {
+        showToast("You must be logged in to vote", "error");
+        return;
+      }
+      setVoting(true);
+      try {
+        await axios.post(`${import.meta.env.VITE_BACKEND_URL}/notices/vote`, {
+          option_id: optionId,
+          user_id: userId,
+        });
+        showToast("Vote recorded! 🎉", "success");
+
+        // re-fetch updated vote counts
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/notices/poll-options/${viewingNotice.notice_id}`
+        );
+        setPollOptions(res.data);
+      } catch (err) {
+        // e.g. “Already voted” error or network issue
+        showToast(err.response?.data?.message || "Voting failed", "error");
+      } finally {
+        setVoting(false);
+      }
+    };
+
 
 
   const displayedNotices = showingUserNotices ? userNotices : notices;
@@ -297,7 +352,7 @@ const ResidentNoticeboard = () => {
             <div className="text-2xl font-semibold text-gray-800">{viewingNotice.title}</div>
             <div className="flex flex-wrap gap-2">
               <span className="p-2 bg-blue-100 text-blue-800 rounded text-xs">
-                {noticeTypes.find((t) => t.value === viewingNotice.type)?.label || viewingNotice.type}
+                {typeLabels[viewingNotice.type] || viewingNotice.type}
               </span>
             </div>
           </div>
@@ -327,6 +382,40 @@ const ResidentNoticeboard = () => {
               </span>
             </div>
           )}
+
+          {viewingNotice.type === 'poll' && (
+            <div className="mt-6 space-y-3">
+              <h3 className="text-lg font-medium text-gray-800">Cast your vote:</h3>
+
+              {pollOptions.map((opt) => (
+                <div
+                  key={opt.option_id}
+                  className="flex items-center justify-between border rounded px-4 py-2"
+                >
+                  {/* Show option text */}
+                  <span className="text-gray-700">{opt.text}</span>
+
+                  {/* Vote button */}
+                  <button
+                    onClick={() => handleVote(opt.option_id)}
+                    disabled={voting}
+                    className={`inline-flex items-center gap-2 text-sm font-medium px-3 py-1 rounded ${
+                      voting
+                        ? "bg-gray-300 cursor-not-allowed"
+                        : "bg-teal-500 hover:bg-teal-400 text-white"
+                    }`}
+                  >
+                    {voting ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : (
+                      `Vote (${opt.votes})`
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
         </div>
       )}
 
@@ -346,7 +435,7 @@ const ResidentNoticeboard = () => {
                   <div className="text-2xl font-semibold text-gray-800">{notice.title}</div>
                   <div className="flex flex-wrap gap-2">
                     <span className="p-2 bg-blue-100 text-blue-800 rounded text-xs">
-                      {noticeTypes.find((t) => t.value === notice.type)?.label || notice.type}
+                      {typeLabels[notice.type] || notice.type}
                     </span>
                   </div>
                 </div>

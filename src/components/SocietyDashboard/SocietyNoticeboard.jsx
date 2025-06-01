@@ -47,6 +47,9 @@ export default function SocietyNoticeboard() {
   const [loadingFederation, setLoadingFederation] = useState(true);
   const [submitting, setSubmitting]               = useState(false);
   const [approvingId, setApprovingId]             = useState(null);
+  const [pollOptions, setPollOptions] = useState([]); 
+  const [voting, setVoting] = useState(false);
+
 
   const showToast = useToast();
 
@@ -67,6 +70,15 @@ export default function SocietyNoticeboard() {
     fetchFederationNotices(decoded.id);
   }, []);
 
+  useEffect(() => {
+    if (viewingNotice?.type === 'poll') {
+      axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/poll-options/${viewingNotice.notice_id}`)
+        .then(res => setPollOptions(res.data))
+        .catch(() => showToast("Failed to load poll options", "error"));
+    }
+  }, [viewingNotice]);
+
+
   const fetchNotices = async (society_id) => {
     setLoadingNotices(true);
     try {
@@ -79,7 +91,7 @@ export default function SocietyNoticeboard() {
         if (!n.user_id) return { ...n, author_name: null, flat_id: null };
         try {
           const u = await axios.get(
-            `${import.meta.env.VITE_BACKEND_URL}/user-name/${n.user_id}`
+            `${import.meta.env.VITE_BACKEND_URL}/notices/user-name/${n.user_id}`
           );
           return {
             ...n,
@@ -208,6 +220,31 @@ export default function SocietyNoticeboard() {
     setConfirmUpdate(false);
   };
 
+  const handleVote = async (optionId) => {
+  setVoting(true);
+  try {
+    // You need the current user’s ID. If `decoded = jwtDecode(token)` gave you `id`, store that in state.
+    const token = localStorage.getItem('token');
+    const decoded = token ? jwtDecode(token) : null;
+    const userId = decoded?.id;
+
+    await axios.post(`${import.meta.env.VITE_BACKEND_URL}/notices/vote`, {
+      option_id: optionId,
+      user_id: userId,
+    });
+    showToast("Vote counted!");
+    // re-fetch updated vote counts
+    const res = await axios.get(
+      `${import.meta.env.VITE_BACKEND_URL}/notices/poll-options/${viewingNotice.notice_id}`
+    );
+    setPollOptions(res.data);
+  } catch (err) {
+    showToast(err.response?.data?.message || "Voting failed", "error");
+  }
+  setVoting(false);
+};
+
+
   return (
     <div className="w-full mx-auto">
       {/* Header */}
@@ -254,7 +291,7 @@ export default function SocietyNoticeboard() {
         )}
       </div>
 
-      {/* Form */}
+      {/* Write Notice */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white border p-6 rounded-xl mb-8 space-y-6">
           <div className="space-y-2">
@@ -279,7 +316,15 @@ export default function SocietyNoticeboard() {
               id="type"
               name="type"
               value={formData.type}
-              onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+              onChange={(e) => {
+                const newType = e.target.value;
+                setFormData({
+                  ...formData,
+                  type: newType,
+                  options: newType === 'poll' ? [''] : undefined,
+                });
+              }}
+
               className="w-full border rounded px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
             >
               {noticeTypes.map((t) => (
@@ -289,6 +334,33 @@ export default function SocietyNoticeboard() {
               ))}
             </select>
           </div>
+          {formData.type === 'poll' && (
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Poll Options</label>
+              {formData.options?.map((opt, i) => (
+                <input
+                  key={i}
+                  value={opt}
+                  onChange={(e) => {
+                    const newOptions = [...formData.options];
+                    newOptions[i] = e.target.value;
+                    setFormData({ ...formData, options: newOptions });
+                  }}
+                  className="w-full border rounded px-4 py-2 text-sm"
+                  placeholder={`Option ${i + 1}`}
+                  required
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, options: [...(formData.options || []), ''] })}
+                className="text-blue-600 text-sm"
+              >
+                + Add Option
+              </button>
+            </div>
+          )}
+
           <div className="space-y-1">
             <label htmlFor="description" className="block text-sm font-medium text-gray-700">
               Description <span className="text-red-500">*</span>
@@ -400,6 +472,27 @@ export default function SocietyNoticeboard() {
               </button>
             )}
           </div>
+
+          {viewingNotice.type === 'poll' && (
+            <div className="mt-4 space-y-2">
+              <h3 className="font-medium">Vote:</h3>
+              {pollOptions.map(opt => (
+                <div key={opt.option_id} className="flex items-center justify-between border p-2 rounded">
+                  <span>{opt.text}</span>
+                  <button
+                    onClick={() => handleVote(opt.option_id)}
+                    disabled={voting}
+                    className={`px-3 py-1 rounded ${
+                      voting ? 'opacity-50 cursor-not-allowed' : 'bg-teal-500 hover:bg-teal-400 text-white'
+                    }`}
+                  >
+                    {voting ? <CircularProgress size={16} color="inherit" /> : `Vote (${opt.votes})`}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
         </div>
       )}
 
