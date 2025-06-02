@@ -18,7 +18,7 @@ const SocietyProfile = () => {
     const fetchSociety = async () => {
       try {
         setLoading(true)
-        const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/auth/society/profile/${society_id}`)
+        const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/society/profile/${society_id}`)
         console.log(data)
         setSociety(data)
       } catch (err) {

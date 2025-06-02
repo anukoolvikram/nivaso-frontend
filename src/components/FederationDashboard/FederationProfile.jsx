@@ -34,7 +34,7 @@ const FederationProfile = () => {
 
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/details/${id}`);
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/federation/details/${id}`);
         setFederationData(res.data);
       } catch (err) {
         console.error('Failed to fetch federation details:', err);
@@ -60,7 +60,7 @@ const FederationProfile = () => {
     const token = localStorage.getItem('token');
     const { id } = jwtDecode(token);
 
-    const response = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/auth/federation/change-password`, {
+    const response = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/federation/change-password`, {
       federationId: id,
       ...passwordData,
     });

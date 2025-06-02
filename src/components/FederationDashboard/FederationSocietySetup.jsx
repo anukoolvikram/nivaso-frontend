@@ -22,7 +22,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
       setLoadingSocieties(true);
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/federation/getSociety`,
+          `${import.meta.env.VITE_BACKEND_URL}/federation/getSociety`,
           {
             params: { federationCode },
           }
@@ -71,7 +71,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
         };
 
         const response = await axios.put(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/federation/updateSociety`,
+          `${import.meta.env.VITE_BACKEND_URL}/federation/updateSociety`,
           payload
         );
 
@@ -88,7 +88,7 @@ const FederationSocietySetup = ({ federation_code: propFederationCode }) => {
         };
 
         const response = await axios.post(
-          `${import.meta.env.VITE_BACKEND_URL}/auth/federation/addSociety`,
+          `${import.meta.env.VITE_BACKEND_URL}/federation/addSociety`,
           payload
         );
 

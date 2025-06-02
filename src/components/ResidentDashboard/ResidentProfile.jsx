@@ -31,7 +31,7 @@ const ResidentProfile = () => {
     const fetchProfile = async () => {
       try {
         // console.log(userId)
-        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/residentProfile/${userId}`);
+        const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/resident/get-profile/${userId}`);
 
         // console.log(res.data)
         setProfile(res.data);
@@ -46,7 +46,7 @@ const ResidentProfile = () => {
   const handleUpdate = async () => {
     setSaving(true); 
     try {
-      await axios.put(`${import.meta.env.VITE_BACKEND_URL}/residentProfile/${userId}`, formData);
+      await axios.put(`${import.meta.env.VITE_BACKEND_URL}/resident/update-profile/${userId}`, formData);
       setProfile({ ...profile, ...formData });
       setEditMode(false);
       showToast('Profile updated successfully!', 'success');
@@ -60,7 +60,7 @@ const ResidentProfile = () => {
 
   const handlePasswordChange = async () => {
     try {
-      await axios.put(`${import.meta.env.VITE_BACKEND_URL}/residentProfile/${userId}/password`, passwords);
+      await axios.put(`${import.meta.env.VITE_BACKEND_URL}/resident/update-profile/${userId}/password`, passwords);
       setPasswords({ oldPassword: '', newPassword: '' });
       setPasswordMode(false);
       showToast('Password changed successfully!', 'success');

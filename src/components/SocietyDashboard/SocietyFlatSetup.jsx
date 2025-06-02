@@ -47,7 +47,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     setIsLoadingFlats(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/society/getFlatsData/${societyCode}`
+        `${import.meta.env.VITE_BACKEND_URL}/society/getFlatsData/${societyCode}`
       );
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
@@ -70,7 +70,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     setCurrentFlat(flat);
     setEditedData({
       ...flat,
-      owner: flat.owner || { name: '', email: '', phone: '', address: '' },
+      owner: flat.owner || { name: '', email: '', phone: '', address: '', initial_password: null },
       resident: flat.resident || { name: '', email: '', phone: '', address: '' }
     });
     setIsNewFlat(false);
@@ -88,13 +88,13 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
       occupancy: '',
       owner_id: null,
       resident_id: null,
-      owner: { name: '', email: '', phone: '', address: '' },
+      owner: { name: '', email: '', phone: '', address: '', initial_password: null },
       resident: { name: '', email: '', phone: '', address: '' }
     });
     setEditedData({
       flat_id: '',
       occupancy: '',
-      owner: { name: '', email: '', phone: '', address: '' },
+      owner: { name: '', email: '', phone: '', address: '', initial_password: null },
       resident: { name: '', email: '', phone: '', address: '' }
     });
     setIsNewFlat(true);
@@ -111,8 +111,8 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     try {
       const { id, flat_id, occupancy, owner, resident } = editedData;
       const endpoint = isNewFlat
-        ? `${import.meta.env.VITE_BACKEND_URL}/auth/society/createFlat`
-        : `${import.meta.env.VITE_BACKEND_URL}/auth/society/saveFlatsData`;
+        ? `${import.meta.env.VITE_BACKEND_URL}/society/createFlat`
+        : `${import.meta.env.VITE_BACKEND_URL}/society/saveFlatsData`;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -127,6 +127,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
           owner_email: owner.email,
           owner_phone: owner.phone,
           owner_address: owner.address,
+          // Note: don't send initial_password if it's read-only/display-only
           resident_name: resident.name,
           resident_email: resident.email,
           resident_phone: resident.phone,
@@ -234,7 +235,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
   const fetchDocuments = async (flat_id) => {
     try {
       const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/get/${flat_id}`
+        `${import.meta.env.VITE_BACKEND_URL}/society/flatDocuments/get/${flat_id}`
       );
       setDocuments(res.data);
     } catch (error) {
@@ -258,7 +259,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
       );
       const cloudUrl = cloudinaryRes.data.secure_url;
 
-      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/post`, {
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/society/flatDocuments/post`, {
         title: uploadTitle,
         society_id: societyCode,
         flat_id: viewingFlat.id,
@@ -281,7 +282,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     setDeleteLoading(true);
     try {
       await axios.delete(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/delete/${docToDelete}`
+        `${import.meta.env.VITE_BACKEND_URL}/society/flatDocuments/delete/${docToDelete}`
       );
       await fetchDocuments(viewingFlat.id);
     } catch (err) {
@@ -363,6 +364,9 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
                   <li>Email: {viewingFlat.owner.email}</li>
                   <li>Phone: {viewingFlat.owner.phone}</li>
                   <li>Address: {viewingFlat.owner.address}</li>
+                  {viewingFlat.owner.initial_password != null && (
+                    <li>Initial Password: {viewingFlat.owner.initial_password}</li>
+                  )}
                 </ul>
               ) : (
                 <p>No Owner Info</p>
@@ -500,10 +504,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {['name', 'email', 'phone', 'address'].map((field) => (
                   <div key={field}>
-                    <label
-                      className="block mb-1 text-sm text-gray-700 capitalize"
-                      htmlFor={`owner-${field}`}
-                    >
+                    <label className="block mb-1 text-sm text-gray-700 capitalize" htmlFor={`owner-${field}`}>
                       {field}
                     </label>
                     <input
@@ -549,6 +550,26 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
                     )}
                   </div>
                 ))}
+
+                {/* Display initial_password if not null, read-only */}
+                {editedData.owner?.initial_password != null && (
+                  <div>
+                    <label
+                      className="block mb-1 text-sm text-gray-700 capitalize"
+                      htmlFor="owner-initial_password"
+                    >
+                      initial_password
+                    </label>
+                    <input
+                      id="owner-initial_password"
+                      name="initial_password"
+                      type="text"
+                      value={editedData.owner.initial_password}
+                      readOnly
+                      className="w-full border px-3 py-2 rounded-md border-gray-300 bg-gray-100"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 

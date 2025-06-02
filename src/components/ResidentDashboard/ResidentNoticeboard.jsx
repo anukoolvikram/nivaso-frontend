@@ -25,13 +25,9 @@ const getTimeAgo = (dateString) => {
 };
 
 const noticeTypes = [
-  // { value: 'announcement', label: '📢 Announcement' },
-  // { value: 'notice', label: '📄 Notice' },
   { value: 'lost_and_found', label: '🧩 Lost & Found' }
 ];
 
-// maps every possible type → emoji+text for display.
-// (used when simply viewing a notice, NOT for the form dropdown)
 const typeLabels = {
   announcement:   '📢 Announcement',
   notice:         '📄 Notice',
@@ -50,10 +46,8 @@ const ResidentNoticeboard = () => {
   const [formError, setFormError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  // where you already have userId, societyCode, etc.
   const [pollOptions, setPollOptions] = useState([]); 
   const [voting, setVoting] = useState(false);
-
 
   const [userId, setUserId] = useState(null);
   const [societyCode, setSocietyCode] = useState(null);
@@ -79,7 +73,7 @@ const ResidentNoticeboard = () => {
           `${import.meta.env.VITE_BACKEND_URL}/notices/poll-options/${viewingNotice.notice_id}`
         )
         .then(res => {
-          setPollOptions(res.data); // e.g. [{ option_id, text, votes }, …]
+          setPollOptions(res.data); 
         })
         .catch(() => showToast("Failed to load poll options", "error"));
     }
@@ -88,8 +82,6 @@ const ResidentNoticeboard = () => {
 
   const fetchNotices = async (society_code) => {
     try {
-      // console.log('abc')
-      // console.log(society_code)
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/all-notices`, {
         params: { society_code }
       });
@@ -180,7 +172,7 @@ const ResidentNoticeboard = () => {
 
     setSubmitting(true);
     try {
-      const res = await axios.post('http://localhost:5000/notices/post-user-notice', {
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/notices/post-user-notice`, {
         ...formData,
         user_id: userId,
         society_code: societyCode
@@ -221,17 +213,13 @@ const ResidentNoticeboard = () => {
         );
         setPollOptions(res.data);
       } catch (err) {
-        // e.g. “Already voted” error or network issue
         showToast(err.response?.data?.message || "Voting failed", "error");
       } finally {
         setVoting(false);
       }
     };
 
-
-
   const displayedNotices = showingUserNotices ? userNotices : notices;
-
   if (loading) return <LoadingSpinner />;
 
   return (
