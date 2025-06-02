@@ -11,7 +11,7 @@ const ResidentDashboard = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(() => {
     // Initialize state from localStorage or default to "Noticeboard"
-    return localStorage.getItem('currentDashboardPage') || "Noticeboard";
+    return localStorage.getItem('currentDashboardPage') || "Profile";
   });
 
   useEffect(() => {

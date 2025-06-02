@@ -9,8 +9,8 @@ const Sidebar = ({ currentPage, onPageChange }) => {
     navigate('/');
   }
 
-  const federationPages = ["About", "Society Setup", "Noticeboard"];
-  const societyPages = ["Flat Setup", "Noticeboard", "Community", "Complaints", "Documents"];
+  const federationPages = ["Profile", "Society Setup", "Noticeboard"];
+  const societyPages = ["Profile", "Flat Setup", "Noticeboard", "Community", "Complaints", "Documents"];
   const residentPages = ["Profile","Noticeboard", "Community", "Complaints"];
 
   const pagesToShow = user_type === "resident" ? residentPages : user_type==="federation"? federationPages : societyPages;

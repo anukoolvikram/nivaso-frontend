@@ -26,6 +26,10 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadLoading, setUploadLoading] = useState(false);
 
+  // New states for delete-dialog
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [docToDelete, setDocToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const navigate = useNavigate();
 
@@ -35,7 +39,6 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     }
   }, [viewingFlat]);
 
-
   useEffect(() => {
     if (societyCode) fetchFlats();
   }, [societyCode]);
@@ -43,7 +46,9 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
   const fetchFlats = async () => {
     setIsLoadingFlats(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/getFlatsData/${societyCode}`);
+      const response = await fetch(
+        `${import.meta.env.VITE_BACKEND_URL}/auth/society/getFlatsData/${societyCode}`
+      );
       if (!response.ok) throw new Error("Failed to fetch");
       const data = await response.json();
       const sortedFlats = data.sort((a, b) => {
@@ -52,15 +57,14 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
         return blockA === blockB ? numA - numB : blockA.localeCompare(blockB);
       });
       setFlats(sortedFlats);
-      return sortedFlats; // 👈 This is what allows your save function to know which flat to view
+      return sortedFlats;
     } catch (error) {
       console.error("Error fetching flats:", error);
       return [];
     } finally {
       setIsLoadingFlats(false);
     }
-    };
-
+  };
 
   const handleEdit = (flat) => {
     setCurrentFlat(flat);
@@ -101,12 +105,14 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
     setIsConfirmed(false);
   };
 
-    const saveAllData = async () => {
+  const saveAllData = async () => {
     if (!validateDetails()) return;
     setSaving(true);
     try {
       const { id, flat_id, occupancy, owner, resident } = editedData;
-      const endpoint = isNewFlat ? `${import.meta.env.VITE_BACKEND_URL}/auth/society/createFlat` : `${import.meta.env.VITE_BACKEND_URL}/auth/society/saveFlatsData`;
+      const endpoint = isNewFlat
+        ? `${import.meta.env.VITE_BACKEND_URL}/auth/society/createFlat`
+        : `${import.meta.env.VITE_BACKEND_URL}/auth/society/saveFlatsData`;
       const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -137,12 +143,11 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
       setServerError("");
 
       // Refetch flats and show the edited flat again
-      const updatedFlats = await fetchFlats(); // we'll fix fetchFlats to return the data
+      const updatedFlats = await fetchFlats();
       const updatedFlat = updatedFlats.find(f => f.id === currentFlat.id);
       if (updatedFlat) {
         setViewingFlat(updatedFlat);
       }
-
     } catch (error) {
       console.error("Error saving flat data:", error);
       setServerError("Server error. Please try again later.");
@@ -162,7 +167,10 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
       errors.occupancy = "Occupancy is required";
       isValid = false;
     }
-    if (ownerEntered || (editedData.owner && (editedData.owner.name || editedData.owner.email || editedData.owner.phone))) {
+    if (
+      ownerEntered ||
+      (editedData.owner && (editedData.owner.name || editedData.owner.email || editedData.owner.phone))
+    ) {
       if (!editedData.owner?.name?.trim()) {
         errors.ownerName = "Owner name is required";
         isValid = false;
@@ -179,8 +187,10 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
         isValid = false;
       }
     }
-    if (editedData.occupancy === 'Rented' &&
-      (residentEntered || (editedData.resident && (editedData.resident.name || editedData.resident.email || editedData.resident.phone)))) {
+    if (
+      editedData.occupancy === "Rented" &&
+      (residentEntered || (editedData.resident && (editedData.resident.name || editedData.resident.email || editedData.resident.phone)))
+    ) {
       if (!editedData.resident?.name?.trim()) {
         errors.residentName = "Resident name is required";
         isValid = false;
@@ -223,54 +233,65 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
 
   const fetchDocuments = async (flat_id) => {
     try {
-      console.log('fetching')
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/get/${flat_id}`);
-      console.log(res.data)
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/get/${flat_id}`
+      );
       setDocuments(res.data);
     } catch (error) {
       console.error("Failed to fetch documents", error);
     }
   };
 
- const handleUpload = async (e) => {
-  e.preventDefault();
-  if (!uploadFile || !uploadTitle.trim()) return alert('Please enter a title and select a file');
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    if (!uploadFile || !uploadTitle.trim()) return;
 
-  try {
-    setUploadLoading(true);
-    const formData = new FormData();
-    formData.append('file', uploadFile);
-    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
+    try {
+      setUploadLoading(true);
+      const formData = new FormData();
+      formData.append('file', uploadFile);
+      formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);
 
-    const cloudinaryRes = await axios.post(
-      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/raw/upload`,
-      formData
-    );
+      const cloudinaryRes = await axios.post(
+        `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/raw/upload`,
+        formData
+      );
+      const cloudUrl = cloudinaryRes.data.secure_url;
 
-    const cloudUrl = cloudinaryRes.data.secure_url;
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/post`, {
+        title: uploadTitle,
+        society_id: societyCode,
+        flat_id: viewingFlat.id,
+        url: cloudUrl
+      });
 
-    await axios.post(`${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/post`, {
-      title: uploadTitle,
-      society_id: societyCode,
-      flat_id: viewingFlat.id,
-      url: cloudUrl
-    });
+      await fetchDocuments(viewingFlat.id);
 
-    // 🔁 Fetch updated list from backend instead of appending manually
-    await fetchDocuments(viewingFlat.id);
+      setUploadTitle('');
+      setUploadFile(null);
+      setShowUploadForm(false);
+    } catch (err) {
+      console.error("Upload failed", err);
+    } finally {
+      setUploadLoading(false);
+    }
+  };
 
-    // Reset fields
-    setUploadTitle('');
-    setUploadFile(null);
-    setShowUploadForm(false);
-  } catch (err) {
-    console.error("Upload failed", err);
-  } finally {
-    setUploadLoading(false);
-  }
-};
-
-
+  const handleDeleteDoc = async () => {
+    setDeleteLoading(true);
+    try {
+      await axios.delete(
+        `${import.meta.env.VITE_BACKEND_URL}/auth/society/flatDocuments/delete/${docToDelete}`
+      );
+      await fetchDocuments(viewingFlat.id);
+    } catch (err) {
+      console.error("Failed to delete document", err);
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteDialog(false);
+      setDocToDelete(null);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl">
@@ -305,15 +326,12 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
                       <td className="px-3 py-2 border">{flat.flat_id}</td>
                       <td className="px-3 py-2 border">{flat.occupancy || "No Info"}</td>
                       <td className="px-3 py-2 border">
-                       <button
-                          onClick={async () => {
-                            setViewingFlat(flat);                            
-                          }}
+                        <button
+                          onClick={() => setViewingFlat(flat)}
                           className="bg-blue-500 hover:bg-blue-400 text-white px-3 py-1 rounded-md text-sm"
                         >
                           View Details
                         </button>
-
                       </td>
                     </tr>
                   ))}
@@ -364,17 +382,33 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
             {/* documents info */}
             <div className="mt-6">
               <h3 className="font-semibold mb-2">Documents</h3>
-              <ul className="list-disc pl-6 space-y-1 text-blue-600">
-                {documents.length > 0 ? (
-                  documents.map(doc => (
-                    <li key={doc.id}>
-                      <a href={doc.document_url} target="_blank" rel="noopener noreferrer">{doc.document_name}</a>
+              {documents.length > 0 ? (
+                <ul className="list-disc pl-6 space-y-1">
+                  {documents.map(doc => (
+                    <li key={doc.id} className="flex items-center justify-between">
+                      <a
+                        href={doc.document_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline"
+                      >
+                        {doc.document_name}
+                      </a>
+                      <button
+                        onClick={() => {
+                          setDocToDelete(doc.id);
+                          setShowDeleteDialog(true);
+                        }}
+                        className="text-red-600 hover:text-red-800 text-sm ml-4"
+                      >
+                        Delete
+                      </button>
                     </li>
-                  ))
-                ) : (
-                  <p className="text-gray-600">No documents uploaded.</p>
-                )}
-              </ul>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-600">No documents uploaded.</p>
+              )}
 
               <button
                 onClick={() => setShowUploadForm(true)}
@@ -423,7 +457,7 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal for Flat Add/Edit */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -462,98 +496,72 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
 
             {/* Owner Fields */}
             <div className="mb-4 p-3 border rounded-md bg-gray-50">
-  <div className="font-semibold text-lg mb-3">Owner Details</div>
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-    {["name", "email", "phone", "address"].map((field) => (
-      <div key={field}>
-        <label
-          className="block mb-1 text-sm text-gray-700 capitalize"
-          htmlFor={`owner-${field}`}
-        >
-          {field}
-        </label>
-
-        <input
-          id={`owner-${field}`}
-          name={field}
-          type={
-            field === "email"
-              ? "email"
-              : field === "phone"
-              ? "tel"
-              : "text"
-          }
-          // For phone, bring up numeric keypad & enforce digits only:
-          {...(field === "phone" && {
-            inputMode: "numeric",
-            pattern: "[0-9]*",
-          })}
-          value={editedData.owner?.[field] || ""}
-          onChange={(e) => {
-            const val = e.target.value;
-            if (field === "phone") {
-              // strip out any non‐digits before updating state
-              const digitsOnly = val.replace(/\D/g, "");
-              handleOwnerChange(field, digitsOnly);
-            } else {
-              handleOwnerChange(field, val);
-            }
-          }}
-          className={`w-full border px-3 py-2 rounded-md ${
-            validationErrors[
-              `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
-            ]
-              ? "border-red-500"
-              : "border-gray-300"
-          }`}
-        />
-
-        {validationErrors[
-          `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
-        ] && (
-          <p className="text-red-500 text-sm mt-1">
-            {
-              validationErrors[
-                `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
-              ]
-            }
-          </p>
-        )}
-      </div>
-    ))}
-  </div>
-</div>
-
-            {/* <div className="mb-4 p-3 border rounded-md bg-gray-50">
               <div className="font-semibold text-lg mb-3">Owner Details</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {["name", "email", "phone", "address"].map((field) => (
+                {['name', 'email', 'phone', 'address'].map((field) => (
                   <div key={field}>
-                    <label className="block mb-1 text-sm text-gray-700 capitalize">{field}</label>
+                    <label
+                      className="block mb-1 text-sm text-gray-700 capitalize"
+                      htmlFor={`owner-${field}`}
+                    >
+                      {field}
+                    </label>
                     <input
-                      type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
+                      id={`owner-${field}`}
+                      name={field}
+                      type={
+                        field === 'email'
+                          ? 'email'
+                          : field === 'phone'
+                          ? 'tel'
+                          : 'text'
+                      }
+                      {...(field === 'phone' && {
+                        inputMode: 'numeric',
+                        pattern: '[0-9]*',
+                      })}
                       value={editedData.owner?.[field] || ''}
-                      onChange={(e) => handleOwnerChange(field, e.target.value)}
-                      className={`w-full border px-3 py-2 rounded-md ${validationErrors[`owner${field.charAt(0).toUpperCase() + field.slice(1)}`] ? 'border-red-500' : 'border-gray-300'}`}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (field === 'phone') {
+                          const digitsOnly = val.replace(/\D/g, '');
+                          handleOwnerChange(field, digitsOnly);
+                        } else {
+                          handleOwnerChange(field, val);
+                        }
+                      }}
+                      className={`w-full border px-3 py-2 rounded-md ${
+                        validationErrors[
+                          `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
+                        ]
+                          ? 'border-red-500'
+                          : 'border-gray-300'
+                      }`}
                     />
-                    {validationErrors[`owner${field.charAt(0).toUpperCase() + field.slice(1)}`] && (
-                      <p className="text-red-500 text-sm mt-1">{validationErrors[`owner${field.charAt(0).toUpperCase() + field.slice(1)}`]}</p>
+                    {validationErrors[
+                      `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
+                    ] && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {validationErrors[
+                          `owner${field.charAt(0).toUpperCase() + field.slice(1)}`
+                        ]}
+                      </p>
                     )}
                   </div>
                 ))}
               </div>
-            </div> */}
+            </div>
 
             {/* Resident (If Rented) */}
             {editedData.occupancy === 'Rented' && (
               <div className="mb-6 p-4 border rounded-md bg-gray-50">
                 <div className="font-semibold text-lg mb-3">Resident Details</div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {["name", "email", "phone", "address"].map((field) => (
+                  {['name', 'email', 'phone', 'address'].map((field) => (
                     <div key={field}>
                       <label className="block mb-1 text-sm text-gray-700 capitalize">{field}</label>
                       <input
-                        type={field === "email" ? "email" : field === "phone" ? "tel" : "text"}
+                        type={field === 'email' ? 'email' : field === 'phone' ? 'tel' : 'text'}
                         value={editedData.resident?.[field] || ''}
                         onChange={(e) => handleResidentChange(field, e.target.value)}
                         className={`w-full border px-3 py-2 rounded-md ${validationErrors[`resident${field.charAt(0).toUpperCase() + field.slice(1)}`] ? 'border-red-500' : 'border-gray-300'}`}
@@ -606,6 +614,35 @@ const SocietyFlatSetup = ({ society_code: propSocietyCode }) => {
                 {saving ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : isNewFlat ? "Create Flat" : "Save Changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showDeleteDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Confirm Deletion</h3>
+            <p className="mb-6">Are you sure you want to delete this document?</p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() => {
+                  setShowDeleteDialog(false);
+                  setDocToDelete(null);
+                }}
+                className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded"
+                disabled={deleteLoading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteDoc}
+                className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+                disabled={deleteLoading}
+              >
+                {deleteLoading ? <CircularProgress size={20} color="inherit" /> : "Delete"}
               </button>
             </div>
           </div>

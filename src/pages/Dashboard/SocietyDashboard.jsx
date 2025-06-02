@@ -6,11 +6,12 @@ import SocietyCommunity from '../../components/SocietyDashboard/SocietyCommunity
 import SocietyComplaints from '../../components/SocietyDashboard/SocietyComplaints';
 import SocietyFlatSetup from '../../components/SocietyDashboard/SocietyFlatSetup';
 import SocietyDocuments from '../../components/SocietyDashboard/SocietyDocuments';
+import SocietyProfile from '../../components/SocietyDashboard/SocietyProfile';
 
 const SocietyDashboard = () => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(() => {
-    return localStorage.getItem('currentDashboardPage') || "Noticeboard";
+    return localStorage.getItem('currentDashboardPage') || "Profile";
   });
 
   useEffect(() => {
@@ -56,6 +57,11 @@ const SocietyDashboard = () => {
         </div>
 
         {/* Page-specific content */}
+        {currentPage === "Profile" && (
+          <div className="text-gray-700">
+            <SocietyProfile/>
+          </div>
+        )}
         {currentPage === "Flat Setup" && (
           <div className="text-gray-700">
             <SocietyFlatSetup/>

@@ -9,7 +9,7 @@ const FederationDashboard = () => {
   const navigate = useNavigate();
 
   const [currentPage, setCurrentPage] = useState(() => {
-    return localStorage.getItem('currentDashboardPage') || "Society Setup";
+    return localStorage.getItem('currentDashboardPage') || "Profile";
   });
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const FederationDashboard = () => {
         </div>
 
         {/* Page-specific content */}
-        {currentPage === "About" && (
+        {currentPage === "Profile" && (
           <div className="text-gray-700">
             <FederationProfile/>
           </div>
