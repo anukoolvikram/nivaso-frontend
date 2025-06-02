@@ -87,7 +87,7 @@ const FederationLogin = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/federation/register`,
+        `${import.meta.env.VITE_BACKEND_URL}/federation/register`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -122,7 +122,7 @@ const FederationLogin = () => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_BACKEND_URL}/auth/federation/login`,
+        `${import.meta.env.VITE_BACKEND_URL}/federation/login`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

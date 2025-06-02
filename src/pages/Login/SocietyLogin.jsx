@@ -69,8 +69,8 @@ const SocietyLogin = () => {
     setLoading(true);
     try {
       const apiEndpoint = hasSocietyCode
-        ? `${import.meta.env.VITE_BACKEND_URL}/auth/society/register`
-        : `${import.meta.env.VITE_BACKEND_URL}/auth/society/self-register`;
+        ? `${import.meta.env.VITE_BACKEND_URL}/society/register`
+        : `${import.meta.env.VITE_BACKEND_URL}/society/self-register`;
 
       const body = hasSocietyCode
         ? {
@@ -120,7 +120,7 @@ const SocietyLogin = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/society/login`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/society/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: loginEmail, password: loginPassword }),

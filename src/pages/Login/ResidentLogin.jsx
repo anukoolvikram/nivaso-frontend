@@ -42,7 +42,7 @@ const ResidentLogin = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/auth/resident/login`, {
+      const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/resident/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
