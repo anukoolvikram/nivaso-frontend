@@ -37,6 +37,10 @@ const typeLabels = {
 
 
 const ResidentNoticeboard = () => {
+
+  const showToast = useToast();
+
+  // USE STATES
   const [notices, setNotices] = useState([]);
   const [userNotices, setUserNotices] = useState([]);
   const [viewingNotice, setViewingNotice] = useState(null);
@@ -48,11 +52,13 @@ const ResidentNoticeboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [pollOptions, setPollOptions] = useState([]); 
   const [voting, setVoting] = useState(false);
-
   const [userId, setUserId] = useState(null);
   const [societyCode, setSocietyCode] = useState(null);
-  const showToast = useToast();
+  const [selectedImages, setSelectedImages] = useState([]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
 
+
+  // USE EFFECTS
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
@@ -80,6 +86,7 @@ const ResidentNoticeboard = () => {
   }, [viewingNotice]);
 
 
+  // FETCH FUNCTIONS
   const fetchNotices = async (society_code) => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/notices/all-notices`, {
@@ -98,16 +105,16 @@ const ResidentNoticeboard = () => {
               const { author_name, flat_id } = userRes.data;
               return { ...notice, author_name, flat_id };
             } catch {
-              return { ...notice, author_name: 'Unknown', flat_id: 'N/A' };
+              return { ...notice, author_name: 'Committee Member', flat_id: '' };
             }
           } else {
-            return { ...notice, author_name: 'System', flat_id: '—' };
+            return { ...notice, author_name: 'Committee Member', flat_id: '' };
           }
         })
       );
-
       setNotices(enrichedNotices);
-    } catch (err) {
+    } 
+    catch (err) {
       console.error('Error fetching notices:', err);
       showToast("Unable to load notices. Please refresh.", "error");
     }    
@@ -136,6 +143,13 @@ const ResidentNoticeboard = () => {
       console.error('Error fetching user notices:', err);
       showToast("Unable to fetch your notices. Please try again later.", "error");
     }        
+  };
+
+
+  // HANDLERS
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedImages(files);
   };
 
   const handleView = (notice) => {
@@ -172,17 +186,29 @@ const ResidentNoticeboard = () => {
 
     setSubmitting(true);
     try {
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/notices/post-user-notice`, {
-        ...formData,
-        user_id: userId,
-        society_code: societyCode
-      });
+
+    const imageUrls = await uploadImagesToCloudinary();
+    setUploadedImageUrls(imageUrls);
+
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/notices/post-user-notice`, 
+        {
+          ...formData,
+          images: imageUrls,       // **NEW** send array of URLs
+          user_id: userId,
+          society_code: societyCode
+        }
+      );
 
       if (res.status === 201) {
         showToast("Notice submitted successfully! It will be visible once approved.", "success");
         setIsWriting(false);
+        // Refresh both lists:
         fetchNotices(societyCode);
         fetchUserNotices(userId);
+        // Clear selected images
+        setSelectedImages([]);
+        setUploadedImageUrls([]);
       } else {
         showToast("Failed to post notice. Try again.", "error");
       }
@@ -192,7 +218,8 @@ const ResidentNoticeboard = () => {
     } finally {
       setSubmitting(false);
     }
-    };
+  };
+
 
     const handleVote = async (optionId) => {
       if (!userId) {
@@ -218,6 +245,24 @@ const ResidentNoticeboard = () => {
         setVoting(false);
       }
     };
+
+  // HELPER 
+  const uploadImagesToCloudinary = async () => {
+    if (!selectedImages.length) return [];
+
+    const uploadPromises = selectedImages.map(file => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET); 
+
+      return axios
+        .post(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`, form)
+        .then(res => res.data.secure_url);
+    });
+
+    return Promise.all(uploadPromises);
+  };
+
 
   const displayedNotices = showingUserNotices ? userNotices : notices;
   if (loading) return <LoadingSpinner />;
@@ -308,6 +353,27 @@ const ResidentNoticeboard = () => {
             />
           </div>
 
+          {/* images */}
+          <div className="space-y-1">
+             <label htmlFor="images" className="block text-sm font-medium text-gray-700">
+               Attach Images
+             </label>
+             <input
+               id="images"
+               name="images"
+               type="file"
+               accept="image/*"
+               multiple
+               onChange={handleImageSelect}
+               className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
+             />
+             {selectedImages.length > 0 && (
+               <div className="mt-1 text-xs text-gray-500">
+                 {selectedImages.length} file{selectedImages.length > 1 ? 's' : ''} selected
+               </div>
+             )}
+           </div>
+
           <div className="flex justify-end gap-3">
             <button
               type="button"
@@ -359,19 +425,31 @@ const ResidentNoticeboard = () => {
             })}
           </p>
 
+          {viewingNotice.images && viewingNotice.images.length > 0 && (
+             <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+               {viewingNotice.images.map((url, idx) => (
+                 <img
+                   key={idx}
+                   src={url}
+                   alt={`notice-${viewingNotice.notice_id}-img-${idx}`}
+                   className="rounded shadow-sm object-cover w-full h-48"
+                 />
+               ))}
+             </div>
+           )}
+
 
           <div className="prose max-w-none text-gray-800 leading-relaxed mb-6">
             {viewingNotice.description}
           </div>
 
-          {viewingNotice.user_id && (
-            <div className="text-right text-sm text-gray-500 mt-4">
-              Posted by:
-              <span className="ml-1 font-medium uppercase">
-                {viewingNotice.author_name} ({viewingNotice.flat_id})
-              </span>
-            </div>
-          )}
+
+          <div className="text-right text-sm text-gray-500 mt-4">
+            Posted by:
+            <span className="ml-1 font-medium uppercase">
+              {viewingNotice.author_name} {viewingNotice.flat_id ? `(${viewingNotice.flat_id})` : ''}
+            </span>
+          </div>
 
           {viewingNotice.type === 'poll' && (
             <div className="mt-6 space-y-3">

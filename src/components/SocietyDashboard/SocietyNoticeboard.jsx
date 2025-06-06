@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';  // kept as you had it
+import { jwtDecode } from 'jwt-decode';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useToast } from '../../context/ToastContext';
@@ -32,16 +32,18 @@ export default function SocietyNoticeboard() {
   const [showingFederation, setShowingFederation] = useState(false);
   const [editing, setEditing]                 = useState(false);
 
+
+  const [selectedImages, setSelectedImages]   = useState([]);
+  const [uploadedImageUrls, setUploadedImageUrls] = useState([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     type: 'announcement',
     society_id: '',
     approved: true,
+    options: undefined, 
   });
   const [confirmUpdate, setConfirmUpdate]     = useState(false);
-
-  // Loading flags
   const [loadingNotices, setLoadingNotices]       = useState(true);
   const [loadingPending, setLoadingPending]       = useState(true);
   const [loadingFederation, setLoadingFederation] = useState(true);
@@ -49,7 +51,6 @@ export default function SocietyNoticeboard() {
   const [approvingId, setApprovingId]             = useState(null);
   const [pollOptions, setPollOptions] = useState([]); 
   const [voting, setVoting] = useState(false);
-
 
   const showToast = useToast();
 
@@ -78,7 +79,6 @@ export default function SocietyNoticeboard() {
     }
   }, [viewingNotice]);
 
-
   const fetchNotices = async (society_id) => {
     setLoadingNotices(true);
     try {
@@ -88,18 +88,18 @@ export default function SocietyNoticeboard() {
       );
       const approved = Array.isArray(data) ? data.filter(n => n.approved) : [];
       const enriched = await Promise.all(approved.map(async n => {
-        if (!n.user_id) return { ...n, author_name: null, flat_id: null };
+        if (!n.user_id) return { ...n, author_name: 'Committee Member', flat_id: null };
         try {
           const u = await axios.get(
             `${import.meta.env.VITE_BACKEND_URL}/notices/user-name/${n.user_id}`
           );
           return {
             ...n,
-            author_name: u.data.author_name || 'Unknown',
-            flat_id:      u.data.flat_id      || 'N/A',
+            author_name: u.data.author_name || 'Committee Member',
+            flat_id:      u.data.flat_id      || '',
           };
         } catch {
-          return { ...n, author_name: 'Unknown', flat_id: 'N/A' };
+          return { ...n, author_name: 'Committee Member', flat_id: '' };
         }
       }));
       setNotices(enriched);
@@ -118,7 +118,7 @@ export default function SocietyNoticeboard() {
       );
       const unapproved = Array.isArray(data) ? data.filter(n => !n.approved) : [];
       const enriched = await Promise.all(unapproved.map(async n => {
-        if (!n.user_id) return { ...n, author_name: 'System', flat_id: '—' };
+        if (!n.user_id) return { ...n, author_name: 'Committee Member', flat_id: '' };
         try {
           const u = await axios.get(
             `${import.meta.env.VITE_BACKEND_URL}/notices/user-name/${n.user_id}`
@@ -129,10 +129,11 @@ export default function SocietyNoticeboard() {
             flat_id:      u.data.flat_id      || 'N/A',
           };
         } catch {
-          return { ...n, author_name: 'Unknown', flat_id: 'N/A' };
+          return { ...n, author_name: 'Committee Member', flat_id: '' };
         }
       }));
       setPendingNotices(enriched);
+      
     } catch {
       showToast("Failed to load pending notices", "error");
     }
@@ -171,30 +172,69 @@ export default function SocietyNoticeboard() {
     setApprovingId(null);
   };
 
+  // **NEW**: when user picks file(s)
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedImages(files);
+  };
+
+  const uploadImagesToCloudinary = async () => {
+    if (!selectedImages.length) return [];
+    const uploadPromises = selectedImages.map(file => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET); 
+      return axios
+        .post(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`, form)
+        .then(res => res.data.secure_url);
+    });
+
+    // “Pics or it didn’t happen” — wait for all to upload
+    return Promise.all(uploadPromises);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
+
     try {
+      // 1. Upload images first (if any)
+      const imageUrls = await uploadImagesToCloudinary();
+      setUploadedImageUrls(imageUrls);
+
+      // 2. Build final payload
+      const payload = {
+        ...formData,
+        images: imageUrls,          // **NEW** array of URLs
+      };
+
       if (editing) {
         await axios.put(
           `${import.meta.env.VITE_BACKEND_URL}/notices/edit-notice/${formData.notice_id}`,
-          formData
+          payload
         );
         showToast('Notice updated!');
       } else {
         await axios.post(
           `${import.meta.env.VITE_BACKEND_URL}/notices/post-notice`,
-          formData
+          payload
         );
         showToast('Notice posted!');
       }
+
+      // Reset form
       setShowForm(false);
       setEditing(false);
       setViewingNotice(null);
-      setFormData(f => ({ ...f, title: '', description: '' }));
+      setFormData(f => ({ ...f, title: '', description: '', type: 'announcement', options: undefined }));
+      setSelectedImages([]);
+      setUploadedImageUrls([]);
+
+      // Refresh lists
       fetchNotices(formData.society_id);
       fetchPendingNotices(formData.society_id);
     } catch (err) {
+      console.error(err);
       showToast(err.response?.data?.message || 'Submit failed', 'error');
     }
     setSubmitting(false);
@@ -205,12 +245,17 @@ export default function SocietyNoticeboard() {
     setFormData({ ...notice });
     setEditing(true);
     setShowForm(true);
+    // **NEW**: if notice has images, preload them into selectedImages as empty (we won't re-upload unless user picks new files)
+    setSelectedImages([]);
+    setUploadedImageUrls(notice.images || []);
   };
+
   const handleView = (notice) => {
     setViewingNotice(notice);
     setShowForm(false);
     setEditing(false);
   };
+
   const handleBack = () => {
     setViewingNotice(null);
     setShowForm(false);
@@ -218,32 +263,32 @@ export default function SocietyNoticeboard() {
     setShowingPending(false);
     setShowingFederation(false);
     setConfirmUpdate(false);
+    setSelectedImages([]);
+    setUploadedImageUrls([]);
   };
 
   const handleVote = async (optionId) => {
-  setVoting(true);
-  try {
-    // You need the current user’s ID. If `decoded = jwtDecode(token)` gave you `id`, store that in state.
-    const token = localStorage.getItem('token');
-    const decoded = token ? jwtDecode(token) : null;
-    const userId = decoded?.id;
+    setVoting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const decoded = token ? jwtDecode(token) : null;
+      const userId = decoded?.id;
 
-    await axios.post(`${import.meta.env.VITE_BACKEND_URL}/notices/vote`, {
-      option_id: optionId,
-      user_id: userId,
-    });
-    showToast("Vote counted!");
-    // re-fetch updated vote counts
-    const res = await axios.get(
-      `${import.meta.env.VITE_BACKEND_URL}/notices/poll-options/${viewingNotice.notice_id}`
-    );
-    setPollOptions(res.data);
-  } catch (err) {
-    showToast(err.response?.data?.message || "Voting failed", "error");
-  }
-  setVoting(false);
-};
-
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/notices/vote`, {
+        option_id: optionId,
+        user_id: userId,
+      });
+      showToast("Vote counted!");
+      // re-fetch updated vote counts
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/notices/poll-options/${viewingNotice.notice_id}`
+      );
+      setPollOptions(res.data);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Voting failed", "error");
+    }
+    setVoting(false);
+  };
 
   return (
     <div className="w-full mx-auto">
@@ -286,12 +331,11 @@ export default function SocietyNoticeboard() {
             >
               Write Notice
             </button>
-            </div>
-
+          </div>
         )}
       </div>
 
-      {/* Write Notice */}
+      {/* Write Notice Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-white border p-6 rounded-xl mb-8 space-y-6">
           <div className="space-y-2">
@@ -308,6 +352,7 @@ export default function SocietyNoticeboard() {
               required
             />
           </div>
+
           <div className="space-y-1">
             <label htmlFor="type" className="block text-sm font-medium text-gray-700">
               Notice Type
@@ -324,7 +369,6 @@ export default function SocietyNoticeboard() {
                   options: newType === 'poll' ? [''] : undefined,
                 });
               }}
-
               className="w-full border rounded px-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500"
             >
               {noticeTypes.map((t) => (
@@ -334,6 +378,7 @@ export default function SocietyNoticeboard() {
               ))}
             </select>
           </div>
+
           {formData.type === 'poll' && (
             <div className="space-y-2">
               <label className="block text-sm font-medium text-gray-700">Poll Options</label>
@@ -375,7 +420,28 @@ export default function SocietyNoticeboard() {
               required
             />
           </div>
-          
+
+          {/* **NEW**: Image upload field */}
+          <div className="space-y-1">
+            <label htmlFor="images" className="block text-sm font-medium text-gray-700">
+              Attach Images
+            </label>
+            <input
+              id="images"
+              name="images"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
+            />
+            {selectedImages.length > 0 && (
+              <div className="mt-1 text-xs text-gray-500">
+                {selectedImages.length} file{selectedImages.length > 1 ? 's' : ''} selected
+              </div>
+            )}
+          </div>
+
           {editing && (
             <div className="flex items-center space-x-2">
               <input
@@ -390,6 +456,7 @@ export default function SocietyNoticeboard() {
               </label>
             </div>
           )}
+
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
@@ -439,15 +506,30 @@ export default function SocietyNoticeboard() {
               hour12: true,
             })}
           </div>
-          <div className="prose max-w-none mb-6">{viewingNotice.description}</div>
-          {viewingNotice.user_id && (
-            <div className="flex justify-end mb-4 text-sm text-gray-500">
-              Posted by:{' '}
-              <strong className="ml-1 uppercase">
-                {viewingNotice.author_name} ({viewingNotice.flat_id})
-              </strong>
+
+          {/* **NEW**: Show images if any */}
+          {viewingNotice.images && viewingNotice.images.length > 0 && (
+            <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {viewingNotice.images.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`notice-${viewingNotice.notice_id}-img-${idx}`}
+                  className="rounded shadow-sm object-cover w-full h-48"
+                />
+              ))}
             </div>
           )}
+
+          <div className="prose max-w-none mb-6">{viewingNotice.description}</div>
+          
+          <div className="flex justify-end mb-4 text-sm text-gray-500">
+            Posted by:
+            <div className="ml-1 uppercase">
+              {viewingNotice.author_name} {viewingNotice.flat_id ? `(${viewingNotice.flat_id})` : ''}
+            </div>
+          </div>
+          
           <div className="flex justify-end gap-3">
             {!showingFederation && (
               <button
@@ -492,7 +574,6 @@ export default function SocietyNoticeboard() {
               ))}
             </div>
           )}
-
         </div>
       )}
 
@@ -506,7 +587,7 @@ export default function SocietyNoticeboard() {
               <div className="text-center py-10 text-gray-500">No notice to show</div>
             ) : (
               pendingNotices.map(n => (
-                <NoticeCard key={n.id} notice={n} onClick={() => handleView(n)} />
+                <NoticeCard key={n.notice_id} notice={n} onClick={() => handleView(n)} />
               ))
             )
           ) : showingFederation ? (
@@ -516,7 +597,7 @@ export default function SocietyNoticeboard() {
               <div className="text-center py-10 text-gray-500">No notice to show</div>
             ) : (
               federationNotices.map(n => (
-                <NoticeCard key={n.id} notice={n} onClick={() => handleView(n)} />
+                <NoticeCard key={n.notice_id} notice={n} onClick={() => handleView(n)} />
               ))
             )
           ) : loadingNotices ? (
@@ -525,7 +606,7 @@ export default function SocietyNoticeboard() {
             <div className="text-center py-10 text-gray-500">No notice to show</div>
           ) : (
             notices.map(n => (
-              <NoticeCard key={n.id} notice={n} onClick={() => handleView(n)} />
+              <NoticeCard key={n.notice_id} notice={n} onClick={() => handleView(n)} />
             ))
           )}
         </div>

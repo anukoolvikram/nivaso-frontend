@@ -19,7 +19,17 @@ const SocietyProfile = () => {
       try {
         setLoading(true)
         const { data } = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/society/profile/${society_id}`)
-        console.log(data)
+
+        // fetch federation name using federation 
+        const code=data.federation_code
+        let federation_name=await axios.get(`${import.meta.env.VITE_BACKEND_URL}/society/federation-name`,
+          {
+            params:{code}
+          }
+        )
+  
+        data.federation_name=federation_name.data.name
+        // console.log(data)
         setSociety(data)
       } catch (err) {
         console.error(err)
@@ -65,10 +75,18 @@ const SocietyProfile = () => {
           <span className="font-medium">Society Code:</span> {society.society_code}
         </div>
         {society.federation_code!='FED17032025' 
-            ?<div>
-                <span className="font-medium">Federation Code:</span> {society.federation_code}
-            </div>
-            : <></>
+            ?
+            <>
+              <div>
+                  <span className="font-medium">Federation Code:</span> {society.federation_code}
+              </div>
+              <div>
+                  <span className="font-medium">Federation Name:</span> {society.federation_name}
+              </div>
+            </>
+            : 
+            <>
+            </>
         }
         <div>
           <span className="font-medium">Type:</span> {society.society_type}

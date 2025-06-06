@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeftIcon } from '@heroicons/react/24/solid';
-import { useToast } from '../../context/ToastContext'; 
+import { useToast } from '../../context/ToastContext.jsx';
 import LoadingSpinner from '../LoadingSpinner.jsx';
 import { CircularProgress } from '@mui/material';
 
@@ -15,14 +15,14 @@ const getTimeAgo = (dateString) => {
   const diffMs = now - past;
 
   const minutes = Math.floor(diffMs / (1000 * 60));
-  const hours = Math.floor(diffMs / (1000 * 60 * 60));
-  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  const weeks = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
+  const hours   = Math.floor(diffMs / (1000 * 60 * 60));
+  const days    = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const weeks   = Math.floor(diffMs / (1000 * 60 * 60 * 24 * 7));
 
   if (minutes < 1) return "Just now";
   if (minutes < 60) return `${minutes} min${minutes !== 1 ? 's' : ''} ago`;
-  if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-  if (days < 7) return `${days} day${days !== 1 ? 's' : ''} ago`;
+  if (hours   < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+  if (days    < 7) return `${days} day${days !== 1 ? 's' : ''} ago`;
   return `${weeks} week${weeks !== 1 ? 's' : ''} ago`;
 };
 
@@ -44,35 +44,71 @@ const SocietyCommunity = () => {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const showToast = useToast();
 
+  // **NEW**: state for image uploads
+  const [selectedImages, setSelectedImages] = useState([]);      // File[] picked by user
+  const [uploadedImageUrls, setUploadedImageUrls] = useState([]); // cloudinary secure URLs
+
   const token = localStorage.getItem('token');
   let decoded = token ? jwtDecode(token) : null;
+
+  // **NEW**: helper to upload files to Cloudinary
+  const uploadImagesToCloudinary = async () => {
+    if (!selectedImages.length) return [];
+
+    const uploadPromises = selectedImages.map(file => {
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET); 
+      return axios
+        .post(`https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`, form) 
+        .then(res => res.data.secure_url);
+    });
+
+    return Promise.all(uploadPromises);
+  };
+
+  // **NEW**: capture file selection
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setSelectedImages(files);
+  };
 
   useEffect(() => {
     const fetchBlogs = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/all-blogs`, {
-          params: { society_id: decoded?.society_code }
-        });
-        const blogs = response.data || [];
+        const response = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/blogs/all-blogs`,
+          { params: { society_code: decoded?.society_code } }
+        );
+        const fetchedBlogs = response.data || [];
+
+        // Enrich each blog with author_name and editable flag
         const blogsWithAuthors = await Promise.all(
-          blogs.map(async (blog) => {
-            let authorName = 'Community Member';
+          fetchedBlogs.map(async (blog) => {
+            let authorName = 'Committee Member';
             if (blog.author_id) {
               try {
-                const authorRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/blogs/author-name/${blog.author_id}`);
+                const authorRes = await axios.get(
+                  `${import.meta.env.VITE_BACKEND_URL}/blogs/author-name/${blog.author_id}`
+                );
                 authorName = authorRes.data?.author_name || 'Unknown';
               } catch {
                 authorName = 'Unknown';
               }
             }
-            return { ...blog, editable: blog.by_admin === true, author_name: authorName };
+            return {
+              ...blog,
+              editable: blog.by_admin === true,
+              author_name: authorName
+            };
           })
         );
+
         setBlogs(blogsWithAuthors);
         setError(null);
-      } catch (error) {
-        console.error('Error fetching blogs:', error);
+      } catch (err) {
+        console.error('Error fetching blogs:', err);
         setError('Failed to load blogs. Please try again.');
         showToast('Failed to load blogs. Please try again.', 'error');
         setBlogs([]);
@@ -81,8 +117,10 @@ const SocietyCommunity = () => {
       }
     };
 
-    if (decoded?.society_code) fetchBlogs();
-  }, [decoded?.society_code]);
+    if (decoded?.society_code) {
+      fetchBlogs();
+    }
+  }, [decoded?.society_code, showToast]);
 
   const toggleTag = (tag) => {
     setSelectedTags((prev) =>
@@ -97,6 +135,10 @@ const SocietyCommunity = () => {
     setSelectedBlog(blog);
     setIsEditing(true);
     setShowForm(true);
+
+    // Preload existing image URLs for editing
+    setUploadedImageUrls(blog.images || []);
+    setSelectedImages([]); // clear raw File state
   };
 
   const handleBlogSubmit = async () => {
@@ -107,20 +149,41 @@ const SocietyCommunity = () => {
 
     setSubmitLoading(true);
     try {
+      // 1) Upload new images first
+      const imageUrls = await uploadImagesToCloudinary();
+      // Combine any pre-existing URLs (in case of editing) with newly uploaded ones
+      const allImageUrls = isEditing
+        ? [...(uploadedImageUrls || []), ...imageUrls]
+        : imageUrls;
+      setUploadedImageUrls(allImageUrls);
+
       let response;
       if (isEditing && selectedBlog) {
+        // Update existing blog
         response = await axios.put(
-          `${import.meta.env.VITE_BACKEND_URL}/blogs/update-blog/${selectedBlog.post_id || selectedBlog.id}`,
-          { title, content, tags: selectedTags }
+          `${import.meta.env.VITE_BACKEND_URL}/blogs/update-blog/${
+            selectedBlog.post_id || selectedBlog.id
+          }`,
+          {
+            title,
+            content,
+            tags: selectedTags,
+            images: allImageUrls
+          }
         );
       } else {
+        // Create new blog
         const newBlog = {
           title,
           content,
           tags: selectedTags,
-          society_id: decoded?.society_code
+          society_code: decoded?.society_code,
+          images: imageUrls
         };
-        response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/blogs/add-admin-blog`, { blog: newBlog });
+        response = await axios.post(
+          `${import.meta.env.VITE_BACKEND_URL}/blogs/add-admin-blog`,
+          { blog: newBlog }
+        );
       }
 
       if (response.data.success) {
@@ -131,33 +194,40 @@ const SocietyCommunity = () => {
             title,
             content,
             tags: selectedTags,
+            images: allImageUrls,
             editable: true,
-            author_name: selectedBlog.author_name || decoded?.name || "Community Member",
+            author_name: selectedBlog.author_name || decoded?.name || 'Community Member',
+            post_date: updatedBlog.post_date || new Date().toISOString()
           };
-          setBlogs(prev => prev.map(blog => blog.id === selectedBlog.id || blog.post_id === selectedBlog.id ? updated : blog));
+          setBlogs((prev) =>
+            prev.map((b) =>
+              (b.id === selectedBlog.id || b.post_id === selectedBlog.id) ? updated : b
+            )
+          );
           setSelectedBlog(updated);
         } else {
-          setBlogs(prev => [
-            {
-              id: updatedBlog.id || updatedBlog.post_id,
-              title: title.trim(),
-              content: content.trim(),
-              tags: selectedTags,
-              editable: true,
-              author_name: decoded?.name || "Admin",
-              post_date: updatedBlog.post_date || new Date().toISOString(),
-            },
-            ...prev
-          ]);
+          // Prepend new blog to the list
+          const newEntry = {
+            id: updatedBlog.id || updatedBlog.post_id,
+            title: title.trim(),
+            content: content.trim(),
+            tags: selectedTags,
+            images: imageUrls,
+            editable: true,
+            author_name: decoded?.name || 'Admin',
+            post_date: updatedBlog.post_date || new Date().toISOString()
+          };
+          setBlogs((prev) => [newEntry, ...prev]);
         }
         resetForm();
-        showToast(isEditing ? "Blog updated successfully!" : "Blog posted!");
+        showToast(isEditing ? 'Blog updated successfully!' : 'Blog posted!');
       } else {
         setError(response.data.error || 'Failed to submit blog');
       }
-    } catch (error) {
-      console.error('Error submitting blog:', error);
-      const message = error?.response?.data?.message || error?.response?.data?.error || 'Failed to submit blog.';
+    } catch (err) {
+      console.error('Error submitting blog:', err);
+      const message =
+        err?.response?.data?.message || err?.response?.data?.error || 'Failed to submit blog.';
       showToast(message, 'error');
     } finally {
       setSubmitLoading(false);
@@ -172,6 +242,8 @@ const SocietyCommunity = () => {
     setIsEditing(false);
     setShowForm(false);
     setConfirmUpdate(false);
+    setSelectedImages([]);
+    setUploadedImageUrls([]);
   };
 
   const confirmDeleteBlog = (blogId) => {
@@ -188,17 +260,23 @@ const SocietyCommunity = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (response.data.success) {
-        setBlogs(prev => prev.filter(blog => blog.id !== blogToDelete));
-        showToast("Blog deleted successfully!");
-        if (selectedBlog && (selectedBlog.id === blogToDelete || selectedBlog.post_id === blogToDelete)) {
+        setBlogs((prev) => prev.filter((b) =>
+          b.id !== blogToDelete && b.post_id !== blogToDelete
+        ));
+        showToast('Blog deleted successfully!');
+        if (
+          selectedBlog &&
+          (selectedBlog.id === blogToDelete || selectedBlog.post_id === blogToDelete)
+        ) {
           setSelectedBlog(null);
         }
       } else {
         setError(response.data.error || 'Failed to delete blog');
       }
-    } catch (error) {
-      console.error('Error deleting blog:', error);
-      const message = error?.response?.data?.message || error?.response?.data?.error || 'Failed to delete blog';
+    } catch (err) {
+      console.error('Error deleting blog:', err);
+      const message =
+        err?.response?.data?.message || err?.response?.data?.error || 'Failed to delete blog';
       showToast(message, 'error');
     } finally {
       setShowDeleteDialog(false);
@@ -211,9 +289,10 @@ const SocietyCommunity = () => {
     <div className="w-full">
       {error && <div className="mb-4 text-red-700">{error}</div>}
 
+      {/* LIST / “Write Blog” BUTTON */}
       {!showForm && !selectedBlog && (
         <div>
-          <div className='flex justify-end'>
+          <div className="flex justify-end">
             <button
               className="mb-4 px-4 py-2 font-medium bg-teal-500 text-white hover:bg-teal-400 transition"
               onClick={() => setShowForm(true)}
@@ -238,7 +317,12 @@ const SocietyCommunity = () => {
                     <div className="text-2xl font-semibold mb-2">{blog.title}</div>
                     <div className="flex flex-wrap gap-2 mb-2">
                       {blog.tags?.map((tag) => (
-                        <span key={tag} className="px-3 py-2 text-xs bg-blue-100 text-blue-800 rounded">{tag}</span>
+                        <span
+                          key={tag}
+                          className="px-3 py-2 text-xs bg-blue-100 text-blue-800 rounded"
+                        >
+                          {tag}
+                        </span>
                       ))}
                     </div>
                   </div>
@@ -250,13 +334,13 @@ const SocietyCommunity = () => {
         </div>
       )}
 
-      {/* EDITING OR CREATING */}
+      {/* CREATE / EDIT FORM */}
       {(showForm || isEditing) && (
         <div className="space-y-4 bg-white p-3 border rounded-lg shadow-md">
           <div className="text-lg font-semibold">
             {isEditing ? 'Edit Blog Post' : 'Create New Blog Post'}
           </div>
-          
+
           <input
             type="text"
             placeholder="Title"
@@ -289,13 +373,33 @@ const SocietyCommunity = () => {
             ))}
           </div>
 
+          {/* IMAGE UPLOAD FIELD */}
+          <div className="space-y-1 mt-4">
+            <label htmlFor="blog-images" className="block text-sm font-medium text-gray-700">
+              Attach Images
+            </label>
+            <input
+              id="blog-images"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageSelect}
+              className="w-full border rounded px-2 py-1 text-sm focus:ring-2 focus:ring-indigo-500"
+            />
+            {selectedImages.length > 0 && (
+              <div className="mt-1 text-xs text-gray-500">
+                {selectedImages.length} file{selectedImages.length > 1 ? 's' : ''} selected
+              </div>
+            )}
+          </div>
+
           {isEditing && (
             <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="confirmUpdate"
                 checked={confirmUpdate}
-                onChange={() => setConfirmUpdate(prev => !prev)}
+                onChange={() => setConfirmUpdate((prev) => !prev)}
                 className="w-4 h-4"
               />
               <label htmlFor="confirmUpdate" className="text-sm ml-2 text-gray-700">
@@ -304,12 +408,15 @@ const SocietyCommunity = () => {
             </div>
           )}
 
-
           <div className="flex justify-end gap-2">
             <button
               onClick={handleBlogSubmit}
               disabled={
-                submitLoading || !title.trim() || !content.trim() || selectedTags.length === 0 || (isEditing && !confirmUpdate)
+                submitLoading ||
+                !title.trim() ||
+                !content.trim() ||
+                selectedTags.length === 0 ||
+                (isEditing && !confirmUpdate)
               }
               className={`px-4 py-2 flex items-center gap-2 ${
                 isEditing && !confirmUpdate
@@ -317,19 +424,17 @@ const SocietyCommunity = () => {
                   : 'bg-teal-500 hover:bg-teal-400'
               } text-white transition`}
             >
-              {submitLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                isEditing ? 'Update' : 'Submit'
-              )}
+              {submitLoading ? <CircularProgress size={20} color="inherit" /> : isEditing ? 'Update' : 'Submit'}
             </button>
 
-            <button onClick={resetForm} className="px-4 py-2 bg-gray-500 text-white">Cancel</button>
+            <button onClick={resetForm} className="px-4 py-2 bg-gray-500 text-white">
+              Cancel
+            </button>
           </div>
         </div>
       )}
 
-      {/* VIEWING A NOTICE */}
+      {/* VIEW A BLOG */}
       {selectedBlog && !isEditing && (
         <div className="mt-4 border p-6 rounded-lg bg-white shadow-sm">
           <button
@@ -339,17 +444,23 @@ const SocietyCommunity = () => {
             <ArrowLeftIcon className="h-5 w-5" />
           </button>
 
-          <div className='flex justify-between'>
+          <div className="flex justify-between">
             <div className="text-2xl font-semibold">{selectedBlog.title}</div>
             <div className="flex flex-wrap p-2 gap-2">
               {selectedBlog.tags?.map((tag) => (
-                <span key={tag} className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-xs">{tag}</span>
+                <span
+                  key={tag}
+                  className="px-3 py-2 bg-blue-100 text-blue-800 rounded text-xs"
+                >
+                  {tag}
+                </span>
               ))}
             </div>
           </div>
 
           <div className="text-sm text-gray-500 mb-4">
-            Posted on {new Date(selectedBlog.post_date).toLocaleString('en-IN', {
+            Posted on{' '}
+            {new Date(selectedBlog.post_date).toLocaleString('en-IN', {
               weekday: 'short',
               year: 'numeric',
               month: 'short',
@@ -360,8 +471,24 @@ const SocietyCommunity = () => {
             })}
           </div>
 
+          {/* DISPLAY IMAGES IF ANY */}
+          {selectedBlog.images && selectedBlog.images.length > 0 && (
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {selectedBlog.images.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`blog-${selectedBlog.id}-img-${idx}`}
+                  className="rounded shadow-sm object-cover w-full h-48"
+                />
+              ))}
+            </div>
+          )}
+
           <div className="prose max-w-none">
-            {selectedBlog.content.split('\n').map((p, i) => <p key={i}>{p}</p>)}
+            {selectedBlog.content.split('\n').map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
           </div>
 
           <div className="flex justify-end mt-6 mb-4 pt-1 border-t text-sm text-gray-500">
@@ -387,6 +514,7 @@ const SocietyCommunity = () => {
         </div>
       )}
 
+      {/* DELETE CONFIRMATION DIALOG */}
       {showDeleteDialog && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-md p-6 shadow-xl w-full max-w-sm text-center space-y-4">
@@ -407,13 +535,8 @@ const SocietyCommunity = () => {
                 className="px-4 py-2 bg-red-600 text-white hover:bg-red-500 flex items-center justify-center gap-2"
                 disabled={deleteLoading}
               >
-                {deleteLoading ? (
-                  <CircularProgress size={20} color="inherit" />
-                ) : (
-                  'Delete'
-                )}
+                {deleteLoading ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
               </button>
-
             </div>
           </div>
         </div>
