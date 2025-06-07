@@ -32,10 +32,16 @@ const SocietyComplaints = () => {
   const [activeStatus, setActiveStatus] = useState('Received');
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [showSaveButton, setShowSaveButton] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);   
+  const [uploadingProof, setUploadingProof] = useState(false); 
 
   const token = localStorage.getItem('token');
   const decoded = token ? jwtDecode(token) : null;
   const societyCode = decoded?.society_code;
+
+  const isReadOnly = !!selectedComplaint && 
+    ['Resolved', 'Dismissed'].includes(selectedComplaint.status);
+
 
   const statusOptions = [
     'Received',
@@ -92,6 +98,23 @@ const SocietyComplaints = () => {
     return complaints.filter((c) => c.status === activeStatus);
   };
 
+
+  // HELPER FUNCTIONS
+  // upload selectedImages to Cloudinary, return array of secure URLs
+const uploadImagesToCloudinary = async () => {
+  if (!selectedImages.length) return [];
+  const promises = selectedImages.map(file => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET);         
+    return axios.post(
+      `https://api.cloudinary.com/v1_1/${import.meta.env.VITE_CLOUDINARY_CLOUD_NAME}/auto/upload`, 
+      form
+    ).then(r => r.data.secure_url);
+  });
+  return Promise.all(promises);
+};
+
   const handleComplaintClick = async (complaint) => {
     // Auto-update Received -> Under Review
     if (complaint.status === 'Received') {
@@ -134,6 +157,11 @@ const SocietyComplaints = () => {
 
   const handleSaveStatus = async () => {
     // Show error inside component instead of alert
+    if (newStatus === 'Resolved' && selectedImages.length === 0) {
+      setSaveError('Please attach at least one proof image.');
+      return;
+    }
+
     if (newStatus === 'Dismissed' && dismissComment.trim() === '') {
       setSaveError('Please enter a dismissal comment.');
       return;
@@ -142,6 +170,14 @@ const SocietyComplaints = () => {
     setSaveError(null);
     setUpdatingStatus(true);
 
+    let imageUrls = [];
+    if (newStatus === 'Resolved') {
+      setUploadingProof(true);
+      imageUrls = await uploadImagesToCloudinary();
+      setUploadingProof(false);
+    }
+
+
     try {
       await axios.put(
         `${import.meta.env.VITE_BACKEND_URL}/complaints/change-status`,
@@ -149,6 +185,7 @@ const SocietyComplaints = () => {
           id: selectedComplaint.id,
           status: newStatus,
           comment: newStatus === 'Dismissed' ? dismissComment : undefined,
+          images: imageUrls 
         }
       );
 
@@ -187,6 +224,7 @@ const SocietyComplaints = () => {
     setNewStatus('');
     setDismissComment('');
     setSaveError(null);
+    setSelectedImages([]);   
   };
 
   if (loading) return <LoadingSpinner />;
@@ -204,7 +242,6 @@ const SocietyComplaints = () => {
 
   return (
     <div className="w-full mx-auto">
-      {/* Viewing a single complaint */}
       {selectedComplaint ? (
         <div className="bg-white shadow-lg rounded p-6 border border-blue-300">
           <button
@@ -239,6 +276,20 @@ const SocietyComplaints = () => {
             ))}
           </div>
 
+          {selectedComplaint.images?.length > 0 && (
+          <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {selectedComplaint.images.map((url, idx) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`proof-${idx}`}
+                className="rounded shadow-sm object-cover w-full h-48"
+              />
+            ))}
+          </div>
+        )}
+
+
           <div className="flex justify-end pt-1 mb-4 text-sm border-t text-gray-600">
             Posted by:{' '}
             <span className="font-medium ml-2">
@@ -247,25 +298,55 @@ const SocietyComplaints = () => {
             </span>
           </div>
 
-          <div className="mb-4">
-            <label className="mb-2 text-gray-600 mr-2">
-              Change Status:
-            </label>
-            <select
-              value={newStatus}
-              onChange={(e) => {
-                setNewStatus(e.target.value);
-                setShowSaveButton(true);
-                setSaveError(null);
-              }}
-              className="border rounded px-3 py-2"
-            >
-              <option value="Under Review">Under Review</option>
-              <option value="Taking Action">Taking Action</option>
-              <option value="Dismissed">Dismissed</option>
-              <option value="Resolved">Resolved</option>
-            </select>
-          </div>
+          { !isReadOnly && (
+            <>
+              <div className="mb-4">
+                <label className="mb-2 text-gray-600 mr-2">Change Status:</label>
+                <select
+                  value={newStatus}
+                  onChange={e => {
+                    setNewStatus(e.target.value);
+                    setShowSaveButton(true);
+                    setSaveError(null);
+                  }}
+                  className="border rounded px-3 py-2"
+                >
+                  <option value="Under Review">Under Review</option>
+                  <option value="Taking Action">Taking Action</option>
+                  <option value="Dismissed">Dismissed</option>
+                  <option value="Resolved">Resolved</option>
+                </select>
+              </div>
+
+              {newStatus === 'Dismissed' && (
+                <div className="mb-4">
+                  {/* dismissal comment */}
+                </div>
+              )}
+
+              {newStatus === 'Resolved' && (
+                <div className="mb-4">
+                  {/* proof file input */}
+                </div>
+              )}
+
+              {saveError && (
+                <div className="mb-4 text-red-500 font-medium">{saveError}</div>
+              )}
+
+              <button
+                onClick={handleSaveStatus}
+                disabled={updatingStatus || uploadingProof}
+                className="bg-teal-500 text-white px-4 py-2 hover:bg-teal-400 mb-4 flex items-center justify-center gap-2"
+              >
+                {updatingStatus ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  'Update Status'
+                )}
+              </button>
+            </>
+          )}
 
           {newStatus === 'Dismissed' && (
             <div className="mb-4">
@@ -285,6 +366,34 @@ const SocietyComplaints = () => {
             </div>
           )}
 
+          {newStatus === 'Resolved' && (!isReadOnly) && (
+            <div className="mb-4">
+              <label className="block mb-2 text-sm font-medium text-gray-700">
+                Attach Proof Images
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={e => setSelectedImages(Array.from(e.target.files))}
+                className="w-full border rounded px-2 py-1"
+              />
+              {selectedImages.length > 0 && (
+                <div className="mt-1 text-xs text-gray-500">
+                  {selectedImages.length} file{selectedImages.length > 1 ? 's' : ''} selected
+                </div>
+              )}
+            </div>
+            )}
+
+            { isReadOnly && (
+              <div className="p-4 bg-gray-100 text-gray-600 rounded mb-4">
+                This complaint is <strong>{selectedComplaint.status}</strong>—no further changes allowed.
+              </div>
+            )}
+
+
+
           {/* Display any saveError here */}
           {saveError && (
             <div className="mb-4 text-red-500 font-medium">
@@ -296,7 +405,7 @@ const SocietyComplaints = () => {
             showSaveButton) && (
             <button
               onClick={handleSaveStatus}
-              disabled={updatingStatus}
+              disabled={updatingStatus || uploadingProof}
               className="bg-teal-500 text-white px-4 py-2 hover:bg-teal-400 mb-4 flex items-center justify-center gap-2"
             >
               {updatingStatus ? (

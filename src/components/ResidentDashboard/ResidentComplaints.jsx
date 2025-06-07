@@ -214,6 +214,21 @@ const ResidentComplaints = () => {
             {selectedComplaint.content.split('\n').map((p, i) => <p key={i}>{p}</p>)}
           </div>
 
+          {selectedComplaint.images?.length > 0 && (
+            <div className="mb-4 mt-2 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <p>Proof of Resolution of the issue: </p>
+              {selectedComplaint.images.map((url, idx) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`proof-${idx}`}
+                  className="rounded shadow-sm object-cover w-full h-48"
+                />
+              ))}
+            </div>
+          )}
+
+
         </div>
       ) : (
         // list of complaints
